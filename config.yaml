@@ -1,0 +1,37 @@
+# MODEL HYPERPARAMETERS
+name: 'model_00'
+gan: True
+
+encoder_lstm_units: 500
+
+conv_filters: [8, 16, 32]
+conv_activation: 'elu'
+conv_initializer: 'he_normal'
+use_batchnorm: True
+
+decoder_lstm_units: 500
+decoder_dense_units: 200
+decoder_dense_activation: 'elu'
+decoder_output_activation: 'relu'
+
+# GAN hyperparameters
+adversary_lstm_units: 500
+
+adv_conv_filters: [8, 16, 32]
+adv_conv_activation: 'elu'
+
+adversary_dense_1: 200
+adversary_dense_2: 200
+adversary_activation: 'elu'
+
+
+# TRAINING PARAMETERS
+seed: 123
+val_test_ratio: [0.1, 0.1]
+
+
+# DETERIORATION PARAMETERS
+prob_noise: 0.75
+exp_scale: 165.496
+interval_ratio: [0.01, 0.4]
+prob_interval: 0.5
