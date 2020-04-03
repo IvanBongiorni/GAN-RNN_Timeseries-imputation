@@ -5,8 +5,7 @@ It is not part of the pipeline like other scripts, it's a practical application 
 """
 
 
-
-def impute():
+def export_imputed_data():
     import os
     import yaml
     import pickle
@@ -28,7 +27,7 @@ def impute():
     X = X[ np.isnan(X).any(axis = 1)]  # keep rows with NaN's only
 
     print('Loading TensorFlow model')
-    model = tf.keras.models.load_model(params['save_path'] + params['model_name'])
+    model = tf.keras.models.load_model(current_path + '/data/' + params['model_name'])
     imputed_data = model.predict(df)
 
     print('Saving imputed data...')
@@ -39,8 +38,5 @@ def impute():
     return None
 
 
-
-
-
 if __name__ == '__main__':
-    impute()
+    export_imputed_data()
