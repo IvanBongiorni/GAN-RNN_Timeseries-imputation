@@ -4,7 +4,7 @@ gan: True
 
 encoder_lstm_units: 500
 
-conv_filters: [8, 16, 32]
+conv_filters: [8, 16]
 conv_activation: 'elu'
 conv_initializer: 'he_normal'
 use_batchnorm: True
@@ -15,6 +15,7 @@ decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
 
 # GAN hyperparameters
+noise_dims: 50
 adversary_lstm_units: 500
 
 adv_conv_filters: [8, 16, 32]
