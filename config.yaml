@@ -1,5 +1,5 @@
 # MODEL HYPERPARAMETERS
-name: 'model_00'
+model_name: 'model_00'
 gan: True
 
 encoder_lstm_units: 500
