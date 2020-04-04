@@ -16,14 +16,14 @@ decoder_output_activation: 'relu'
 
 # GAN hyperparameters
 noise_dims: 50
-adversary_lstm_units: 500
+discriminator_lstm_units: 500
 
-adv_conv_filters: [8, 16, 32]
-adv_conv_activation: 'elu'
+discriminator_conv_filters: [8, 16]
+discriminator_conv_activation: 'elu'
 
-adversary_dense_1: 200
-adversary_dense_2: 200
-adversary_activation: 'elu'
+discriminator_dense_1: 200
+discriminator_dense_2: 200
+discriminator_activation: 'elu'
 
 
 # TRAINING PARAMETERS
