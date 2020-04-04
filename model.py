@@ -93,7 +93,7 @@ def build_GAN():
 
         Dense(params['adversary_dense_2'], activation = params['adversary_activation']),
 
-        Dense(2, activation = 'softmax')
+        Dense(1, activation = 'sigmoid')
 
     ])
 
