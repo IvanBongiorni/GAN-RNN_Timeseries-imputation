@@ -92,15 +92,17 @@ def train_GAN(generator, discriminator, params):
             take = iteration * params['batch_size']
             X_batch = X_train[ take:take+params['batch_size'] , : ]
 
-            # Apply artificial deterioration
-            X_corrupted = deterioration.apply(X_batch)
+            # Apply artificial deterioration and impute data
+            X_imputed = deterioration.apply(X_batch)
+            X_imputed = model(X_imputed)
+            
 
             # Categorical Crossentropy:
             # X_batch with tf.ones_like
             # X_corrupted with tf.zeros_like
 
-            current_G_loss = G_loss(X_batch, X_corrupted)
-            
+            current_G_loss = G_loss(X_batch, X_imputed)
+
 
             current_D_loss = train_Discriminator
 
