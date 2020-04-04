@@ -67,8 +67,8 @@ def train_GAN(generator, discriminator, params):
     #
     #     with tf.GradientTape() as generator_tape, tf.GradientTape() as discriminator_tape:
     #
-    #         real_output =
-    #         fake_output =
+    #         real_output = discriminator(images, training=True)
+    #         fake_output = discriminator(generated_images, training=True)
     #
     #     gradients_of_generator = generator_tape.gradient(generator_loss, generator.trainable_variables)
     #     gradients_of_discriminator = discriminator_tape.gradient(discriminator_loss, discriminator.trainable_variables)
@@ -95,7 +95,14 @@ def train_GAN(generator, discriminator, params):
             # Apply artificial deterioration and impute data
             X_imputed = deterioration.apply(X_batch)
             X_imputed = model(X_imputed)
-            
+
+            # Train Discriminator on real and imputed data
+            # current_discriminator_loss = train_Discriminator(X_batch, X_imputed)
+
+            real_output
+            imputed_output
+
+
 
             # Categorical Crossentropy:
             # X_batch with tf.ones_like
