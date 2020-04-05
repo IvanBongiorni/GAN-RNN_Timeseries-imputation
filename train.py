@@ -1,3 +1,9 @@
+"""
+Implementation of two training function:
+ - "Vanilla" seq2seq model
+ - GAN seq2seq.
+"""
+
 
 def train(model, params, X_train, Y_train, X_val, Y_val):
     import time
@@ -11,9 +17,7 @@ def train(model, params, X_train, Y_train, X_val, Y_val):
         Y_batch = Y_train[ take:take+batch_size , : ]
 
         with tf.GrandientTape() as tape:
-            current_loss = tf.reduce_mean(
-                tf.keras.losses.sparse_categorical_crossentropy(Y_batch, model(X_batch),
-                                                                from_logits = True))
+            current_loss = tf.keras.losses.BinaryCrossentropy(Y_batch, model(X_batch))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
@@ -44,7 +48,9 @@ def train(model, params, X_train, Y_train, X_val, Y_val):
     return None
 
 
-def train_GAN(generator, discriminator, params):
+
+def train_GAN(generator, discriminator, X, V, params):
+    import time
     import numpy as np
     import tensorflow as tf
 
@@ -67,11 +73,16 @@ def train_GAN(generator, discriminator, params):
     ## TRAINING
     for epoch in range(params['n_epochs']):
 
+        start = time.time()
+
+        if params['shuffle']:
+            X = shuffle(X)
+
         for iteration in range(X.shape[0]//batch_size):
 
             # Take batch and apply artificial deterioration to impute data
             take = iteration * params['batch_size']
-            X_real = X_train[ take:take+params['batch_size'] , : ]
+            X_real = X[ take:take+params['batch_size'] , : ]
             X_imputed = deterioration.apply(X_real)
             X_imputed = model(X_imputed)
 
@@ -93,10 +104,7 @@ def train_GAN(generator, discriminator, params):
 
             generator_current_loss = train_generator(prediction_imputed)
 
-        print('{} - {}.  \t Generator Loss: {}.  \t Discriminator Loss: {}'.format(
-            epoch, iteration,
-            generator_current_loss,
-            discriminator_current_loss
-        ))
+        print('{} - {}.  \t Generator Loss: {}.  \t Discriminator Loss: {}.  \t  Time: {}ss'.format(
+            epoch, generator_current_loss, discriminator_current_loss, round(start - time.time(), 2)))
 
     return None
