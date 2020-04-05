@@ -48,84 +48,55 @@ def train_GAN(generator, discriminator, params):
     import numpy as np
     import tensorflow as tf
 
-    ## Loss functions for Generator and Discriminator
-    def generator_loss(fake_output):
-        return tf.keras.losses.BinaryCrossentropy(tf.ones_like(fake_output), fake_output)
+    ## TRAINING FUNCTIONS
+    @tf.function
+    def train_generator(prediction_imputed):
+        return tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_imputed), prediction_imputed)
 
     @tf.function
-    def discriminator_loss(real_output, fake_output):
-        real_loss = tf.keras.losses.BinaryCrossentropy(tf.ones_like(real_output), real_output)
-        fake_loss = tf.keras.losses.BinaryCrossentropy(tf.zeros_like(fake_output), fake_output)
-        total_loss = real_loss + fake_loss
-        return total_loss
-
-    # ## Training function
-    # @tf.function
-    # def train_on_batch(batch):
-    #
-    #     noise = tf.random.normal([params['batch_size'], params['noise_dims']])
-    #
-    #     with tf.GradientTape() as generator_tape, tf.GradientTape() as discriminator_tape:
-    #
-    #         real_output = discriminator(images, training=True)
-    #         fake_output = discriminator(generated_images, training=True)
-    #
-    #     gradients_of_generator = generator_tape.gradient(generator_loss, generator.trainable_variables)
-    #     gradients_of_discriminator = discriminator_tape.gradient(discriminator_loss, discriminator.trainable_variables)
-    #
-    #     generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
-    #     discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
-    #
-    #     return generator_loss, discriminator_loss
+    def train_discriminator(prediction_real, prediction_imputed):
+        with tf.GrandientTape() as discriminator_tape:
+            loss_real = tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_real), prediction_real)
+            loss_imputed = tf.keras.losses.BinaryCrossentropy(tf.zeros_like(prediction_imputed), prediction_imputed)
+            discriminator_current_loss = loss_real + loss_imputed
+        dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
+        discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
+        return discriminator_current_loss
 
 
-
+    ## TRAINING
     for epoch in range(params['n_epochs']):
 
         for iteration in range(X.shape[0]//batch_size):
-            # train G, freeze D
-            generator.trainable = True
-            discriminator.trainable = False
 
-
-            # Take batch
+            # Take batch and apply artificial deterioration to impute data
             take = iteration * params['batch_size']
-            X_batch = X_train[ take:take+params['batch_size'] , : ]
-
-            # Apply artificial deterioration and impute data
-            X_imputed = deterioration.apply(X_batch)
+            X_real = X_train[ take:take+params['batch_size'] , : ]
+            X_imputed = deterioration.apply(X_real)
             X_imputed = model(X_imputed)
 
-            # Train Discriminator on real and imputed data
-            # current_discriminator_loss = train_Discriminator(X_batch, X_imputed)
 
-            real_output
-            imputed_output
+            ## TRAIN DICRIMINATOR
+            generator.trainable = False
+            discriminator.trainable = True
 
+            # Generate Discriminator's predictions (needed for both G and D losses)
+            prediction_real = discriminator(X_real)
+            prediction_imputed = discriminator(X_imputed)
 
-
-            # Categorical Crossentropy:
-            # X_batch with tf.ones_like
-            # X_corrupted with tf.zeros_like
-
-            current_G_loss = G_loss(X_batch, X_imputed)
+            discriminator_current_loss = train_discriminator(prediction_real, prediction_imputed)
 
 
-            current_D_loss = train_Discriminator
+            ## TRAIN GENERATOR
+            generator.trainable = False
+            discriminator.trainable = True
 
-        for iteration in range(X.shape[0]//batch_size):
-            # train A, freeze G
-            for layer in A.layers: layer.trainable = True
-            for layer in G.layers: layer.trainable = False
+            generator_current_loss = train_generator(prediction_imputed)
 
-            # Take batch
-            # Apply artificial deterioration
-            # Get G's predictions
-            # Pair them with other real observations
-            # Train A
-
-
-
-    # Test on validation
+        print('{} - {}.  \t Generator Loss: {}.  \t Discriminator Loss: {}'.format(
+            epoch, iteration,
+            generator_current_loss,
+            discriminator_current_loss
+        ))
 
     return None
