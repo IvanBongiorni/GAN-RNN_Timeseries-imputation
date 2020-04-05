@@ -14,7 +14,7 @@ decoder_dense_units: 200
 decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
 
-# GAN hyperparameters
+# GAN HYPERPARAMETERS
 noise_dims: 50
 discriminator_lstm_units: 500
 
@@ -32,7 +32,8 @@ val_test_ratio: [0.1, 0.1]
 
 
 # DETERIORATION PARAMETERS
-prob_noise: 0.75
-exp_scale: 165.496
+prob_noise: 0.75     # probability of noise
+exp_scale: 165.496   # variance of exponential distribution
 interval_ratio: [0.01, 0.4]
 prob_interval: 0.5
+placeholder_value: -0.1  # what value to be fed instead of NaN
