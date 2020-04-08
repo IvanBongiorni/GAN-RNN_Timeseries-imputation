@@ -1,4 +1,9 @@
 """
+Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
+2020-04-09
+
+MODEL TRAINING
+
 Implementation of two training function:
  - "Vanilla" seq2seq model
  - GAN seq2seq.
@@ -9,6 +14,8 @@ def train(model, params, X_train, Y_train, X_val, Y_val):
     import time
     import numpy as np
     import tensorflow as tf
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
 
     @tf.function
     def train_on_batch():
@@ -21,8 +28,6 @@ def train(model, params, X_train, Y_train, X_val, Y_val):
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
 
     for epoch in range(params['n_epochs']):
         start = time.time()
@@ -42,22 +47,39 @@ def train(model, params, X_train, Y_train, X_val, Y_val):
             round(time.time()-start, 2)
         ))
     print('Training complete.\n')
-    model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
 
+    model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
     print('Model saved at:\n\t{}'.format(params['save_path']))
     return None
-
 
 
 def train_GAN(generator, discriminator, X, V, params):
     import time
     import numpy as np
+    from sklearn.utils import shuffle
     import tensorflow as tf
+
+    generator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
+    discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
 
     ## TRAINING FUNCTIONS
     @tf.function
-    def train_generator(prediction_imputed):
-        return tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_imputed), prediction_imputed)
+    def train_generator(X_real, X_imputed, prediction_imputed, classification_weight, regression_weight):
+        '''
+        Args:
+        - X_real:                 true time series,
+        - X_imputed:              generator's prediction,
+        - prediction_imputed:     discriminator's evaluation of generator
+        - classification_weight:  weigth of generator's ability to fool discriminator in final Loss sum
+        - regression_weight:      weight of regression quality in final Loss sum
+        '''
+        with tf.GrandientTape() as generator_tape:
+            classification_loss = tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_imputed), prediction_imputed)
+            regression_loss = tf.keras.losses.MeanAbsoluteError(X_real, X_imputed)
+            generator_current_loss = classification_loss * classification_weight + regression_loss * regression_weight
+        generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
+        generator_optimizer.apply_gradients(zip(generator_gradient, generator.trainable_variables))
+        return generator_current_loss
 
     @tf.function
     def train_discriminator(prediction_real, prediction_imputed):
@@ -69,10 +91,8 @@ def train_GAN(generator, discriminator, X, V, params):
         discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
         return discriminator_current_loss
 
-
     ## TRAINING
     for epoch in range(params['n_epochs']):
-
         start = time.time()
 
         if params['shuffle']:
@@ -84,8 +104,7 @@ def train_GAN(generator, discriminator, X, V, params):
             take = iteration * params['batch_size']
             X_real = X[ take:take+params['batch_size'] , : ]
             X_imputed = deterioration.apply(X_real)
-            X_imputed = model(X_imputed)
-
+            X_imputed = generator(X_imputed)
 
             ## TRAIN DICRIMINATOR
             generator.trainable = False
@@ -97,14 +116,17 @@ def train_GAN(generator, discriminator, X, V, params):
 
             discriminator_current_loss = train_discriminator(prediction_real, prediction_imputed)
 
-
             ## TRAIN GENERATOR
             generator.trainable = False
             discriminator.trainable = True
 
-            generator_current_loss = train_generator(prediction_imputed)
+            generator_current_loss = train_generator(X_real, X_imputed, prediction_imputed, classification_weight, regression_weight)
 
         print('{} - {}.  \t Generator Loss: {}.  \t Discriminator Loss: {}.  \t  Time: {}ss'.format(
             epoch, generator_current_loss, discriminator_current_loss, round(start - time.time(), 2)))
 
+    print('Training complete.\n')
+
+    model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
+    print('Model saved at:\n\t{}'.format(params['save_path']))
     return None
