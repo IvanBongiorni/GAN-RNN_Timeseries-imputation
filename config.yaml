@@ -18,11 +18,7 @@ decoder_output_activation: 'relu'
 noise_dims: 50
 discriminator_lstm_units: 500
 
-discriminator_conv_filters: [8, 16]
-discriminator_conv_activation: 'elu'
-
-discriminator_dense_1: 200
-discriminator_dense_2: 200
+discriminator_dense_units: 200
 discriminator_activation: 'elu'
 
 
