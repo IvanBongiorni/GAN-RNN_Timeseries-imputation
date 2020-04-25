@@ -127,4 +127,4 @@ def build_GAN(params):
     '''
     generator = build(params)
     discriminator = build_discriminator(params)
-    return G, D
+    return generator, discriminator
