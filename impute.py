@@ -1,7 +1,11 @@
 """
+Author: Ivan Bongiorni
+2020-04-25
+
 This script loads pre-trained model and imputes missing data from Wikipedia Web Traffic Forecast Dataset.
 
 It is not part of the pipeline like other scripts, it's a practical application of the trained, final model.
+It must be run to obtain the imputed dataset, to be employed for further research.
 """
 
 
