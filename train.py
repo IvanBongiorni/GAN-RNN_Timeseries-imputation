@@ -86,6 +86,11 @@ def train_GAN(generator, discriminator, X, V, params):
         with tf.GrandientTape() as discriminator_tape:
             loss_real = tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_real), prediction_real)
             loss_imputed = tf.keras.losses.BinaryCrossentropy(tf.zeros_like(prediction_imputed), prediction_imputed)
+
+            tf.print('\nCHECK: loss_real and loss_imputed:')
+            tf.print(loss_real)
+            tf.print(loss_imputed)
+
             discriminator_current_loss = loss_real + loss_imputed
         dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
         discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
