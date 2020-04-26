@@ -3,7 +3,7 @@ This local module contains loading a preprocessing steps for
 """
 
 
-def _load_data(path_data):
+def _load_raw_dataset(path_data):
     import numpy as np
     import pandas as pd
     df = pd.read_csv('{}train_2.csv'.format(path_data))
@@ -33,21 +33,28 @@ def load_and_process_data(params):
     import pickle
     import numpy as np
 
-    X = _load_data(params['path_data'])
-    
+    X = _load_raw_dataset(params['path_data'])
+
     # Fill left-NaN's with zero
     for i in range(df.shape[0]):
         X[ i , : ] = _left_zero_fill( X[ i , : ] )
 
-    # Separate rows, complete and with NaN's
+    # Take rows with NaN's out - pickle to folder
     X_nan = X[ np.isnan(X).any(axis = 1) ]
+    fileObject = open(params['path_data']+'X_nan.pkl', 'wb')
+    pickle.dump(X_nan, fileObject)
+    fileObject.close()
+    del X_nan  # free memory
+
+    # Keep only complete observations for training
     X = X[ ~np.isnan(X).any(axis = 1) ]
 
-    # Pickle X_nan in /data/ folder
-    fileObject = open(params['path_data']+'X_nan.pkl', 'wb')
-    pickle.dump(df_nan, fileObject)
-    fileObject.close()
-    
+
+    ###
+    ###  INSERIRE RNN_dataprep()
+    ###  qualcosa del tipo:  X = RNN_dataprep(X, params)
+
+
     # Shuffle and split in Train-Validation-Test based on input params
     X = shuffle(X, random_state = params['seed'])
     test_cutoff = int(X.shape[0] * ( 1 - params['val_test_ratio'][0] ))
