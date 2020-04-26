@@ -76,6 +76,12 @@ def train_GAN(generator, discriminator, X, V, params):
         with tf.GrandientTape() as generator_tape:
             classification_loss = tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_imputed), prediction_imputed)
             regression_loss = tf.keras.losses.MeanAbsoluteError(X_real, X_imputed)
+
+            ## AGGIUNGI BLOCCO PER CONTROLLO
+            tf.print('\nCHECK: classification_loss and regression_loss:')
+            tf.print(classification_loss)
+            tf.print(regression_loss)
+
             generator_current_loss = classification_loss * classification_weight + regression_loss * regression_weight
         generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
         generator_optimizer.apply_gradients(zip(generator_gradient, generator.trainable_variables))
@@ -86,11 +92,6 @@ def train_GAN(generator, discriminator, X, V, params):
         with tf.GrandientTape() as discriminator_tape:
             loss_real = tf.keras.losses.BinaryCrossentropy(tf.ones_like(prediction_real), prediction_real)
             loss_imputed = tf.keras.losses.BinaryCrossentropy(tf.zeros_like(prediction_imputed), prediction_imputed)
-
-            tf.print('\nCHECK: loss_real and loss_imputed:')
-            tf.print(loss_real)
-            tf.print(loss_imputed)
-
             discriminator_current_loss = loss_real + loss_imputed
         dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
         discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
@@ -101,7 +102,7 @@ def train_GAN(generator, discriminator, X, V, params):
         start = time.time()
 
         if params['shuffle']:
-            X = shuffle(X)
+            ### AGGIUNGI SHUFFLE VELOCE, CON INDICE
 
         for iteration in range(X.shape[0]//batch_size):
 
