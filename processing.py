@@ -6,7 +6,7 @@ This local module contains loading a preprocessing steps for
 def _load_raw_dataset(path_data):
     import numpy as np
     import pandas as pd
-    df = pd.read_csv('{}train_2.csv'.format(path_data))
+
     df.drop('Page', axis = 1, inplace = True)
     df = df.values
     return df
@@ -21,6 +21,49 @@ def _left_zero_fill(x):
     return x
 
 
+def RNN_univariate_processing(X, params):
+# def RNN_dataprep(series, len_input, len_pred):
+    '''
+    from: https://github.com/IvanBongiorni/TensorFlow2.0_Notebooks/blob/master/TensorFlow2.0__04.02_RNN_many2many.ipynb
+
+    From time series and two hyperparameters:
+    input length and output length, returns Train
+    and Test numpy arrays for many-to-many RNNs.
+
+    Args:
+        series: time series data
+        len_input: length of input sequences
+        len_pred: no. of steps ahead to forecast
+    '''
+    import numpy as np
+
+    # create a matrix of sequences
+    S = np.empty((len(series)-(len_input+len_pred)+1,
+                  len_input+len_pred))
+
+    # take each row/time window
+    for i in range(S.shape[0]):
+        S[i,:] = series[i : i+len_input+len_pred]
+
+    # first (len_input) cols of S are train
+    train = S[: , :len_input]
+
+    # last (len_pred) cols of S are test
+    test = S[: , -len_pred:]
+
+    # set common data type
+    train = train.astype(np.float32)
+    test = test.astype(np.float32)
+
+    # reshape data as required by Keras LSTM
+    train = train.reshape((len(train), len_input, 1))
+    test = test.reshape((len(test), len_pred))
+
+    return train, test
+
+
+
+
 def load_and_process_data(params):
     '''
     Main wrapper of the input pipe. Steps:
@@ -32,6 +75,13 @@ def load_and_process_data(params):
     '''
     import pickle
     import numpy as np
+
+    df = pd.read_csv('{}train_2.csv'.format(path_data))
+
+    ####
+    #### IMPORTANTE: bisogna cambiare tutto, non va bene inserire subito un np.array
+    #### perché prima bisogna effettuare una scalatura del dato.
+    ####    QUESTA PARTE VA RISCRITTA DEL TUTTO
 
     X = _load_raw_dataset(params['path_data'])
 
@@ -53,6 +103,7 @@ def load_and_process_data(params):
     ###
     ###  INSERIRE RNN_dataprep()
     ###  qualcosa del tipo:  X = RNN_dataprep(X, params)
+    X = RNN_univariate_processing(X, params)
 
 
     # Shuffle and split in Train-Validation-Test based on input params
