@@ -1,7 +1,10 @@
 """
-This local module contains loading a preprocessing steps for
-"""
+Author: Ivan Bongiorni
+2020-04-27
 
+Data preprocessing pipeline. Separated from model implementation and training.
+"""
+import tools
 
 def _load_raw_dataset(path_data):
     import numpy as np
@@ -12,59 +15,29 @@ def _load_raw_dataset(path_data):
     return df
 
 
-def _left_zero_fill(x):
-    if np.isfinite(x[0]):
-        return x
-
-    cumsum = np.cumsum(np.isnan(x))
-    x[ :np.argmax(cumsum[:-1] == cumsum[1:]) + 1] = 0
-    return x
-
-
-def RNN_univariate_processing(X, params):
-# def RNN_dataprep(series, len_input, len_pred):
-    '''
-    from: https://github.com/IvanBongiorni/TensorFlow2.0_Notebooks/blob/master/TensorFlow2.0__04.02_RNN_many2many.ipynb
-
-    From time series and two hyperparameters:
-    input length and output length, returns Train
-    and Test numpy arrays for many-to-many RNNs.
-
-    Args:
-        series: time series data
-        len_input: length of input sequences
-        len_pred: no. of steps ahead to forecast
-    '''
+def process_page_data(df):
+    """
+    Attaches page data to main df by iterating process_url() from
+    dataprep_tools.py:
+        language:  code - with 'na' for 'no language detected'
+        website:   what type of website: 'wikipedia', 'wikimedia', 'mediawiki'
+        access:    type of access (e.g.: mobile, desktop, both, ...)
+        agent:     type of agent
+    """
     import numpy as np
+    import pandas as pd
+    import tools  # local module
 
-    # create a matrix of sequences
-    S = np.empty((len(series)-(len_input+len_pred)+1,
-                  len_input+len_pred))
+    page_data = [ tools.process_url(url) for url in df['Page'].tolist() ]
+    page_data = pd.concat(page_data, axis = 0)
+    page_data.reset_index(drop = True, inplace = True)
 
-    # take each row/time window
-    for i in range(S.shape[0]):
-        S[i,:] = series[i : i+len_input+len_pred]
-
-    # first (len_input) cols of S are train
-    train = S[: , :len_input]
-
-    # last (len_pred) cols of S are test
-    test = S[: , -len_pred:]
-
-    # set common data type
-    train = train.astype(np.float32)
-    test = test.astype(np.float32)
-
-    # reshape data as required by Keras LSTM
-    train = train.reshape((len(train), len_input, 1))
-    test = test.reshape((len(test), len_pred))
-
-    return train, test
+    page_data['Page'] = df['Page'].copy()  # Attach 'Page' to page_data for merging
+    df.drop('Page', axis = 1, inplace = True)
+    return df, page_data
 
 
-
-
-def load_and_process_data(params):
+def main(params):
     '''
     Main wrapper of the input pipe. Steps:
     1. Loads pandas dataframe, takes values only and converts to np.array
@@ -76,41 +49,58 @@ def load_and_process_data(params):
     import pickle
     import numpy as np
 
+    languages = [ 'en', 'ja', 'de', 'fr', 'zh', 'ru', 'es', 'na' ]
+
     df = pd.read_csv('{}train_2.csv'.format(path_data))
 
-    ####
-    #### IMPORTANTE: bisogna cambiare tutto, non va bene inserire subito un np.array
-    #### perché prima bisogna effettuare una scalatura del dato.
-    ####    QUESTA PARTE VA RISCRITTA DEL TUTTO
+    print('Extracting URL metadata from dataframe.')
+    df, page_data = process_page_data(df)
 
-    X = _load_raw_dataset(params['path_data'])
+    print('Preprocessing trends by language group.')
+    X = []              # This is the final training dataset
+    X_nan = []          # This is the remaining observations that contain NaN's and cannot be used
+    scaling_dict = {}   # This is to save scaling params - by language subgroup
+    
+    for language in languages:
+        sdf = df[ page_data['language'] == language ].values
+        sdf_page_data = page_data[ page_data['language'] == language ].values
 
-    # Fill left-NaN's with zero
-    for i in range(df.shape[0]):
-        X[ i , : ] = _left_zero_fill( X[ i , : ] )
+        # Fill left-NaN's with zero
+        for i in range(sdf.shape[0]):
+            sdf[ i , : ] = tools.left_zero_fill( sdf[ i , : ] )
 
-    # Take rows with NaN's out - pickle to folder
-    X_nan = X[ np.isnan(X).any(axis = 1) ]
+        X_nan.append( sdf[ np.isnan(sdf).any(axis = 1) ] )  # Take rows with NaN's out
+
+        # Keep only complete observations for training
+        sdf = sdf[ ~np.isnan(sdf).any(axis = 1) ]
+
+        sdf = [ tools.right_trim(sdf[ i , : ], params) for i in range(sdf.shape[0]) ]
+        sdf = [ tools.RNN_univariate_processing(sdf[ i , : ], params) for i in range(sdf.shape[0]) ]
+        sdf = np.concatenate(sdf)
+
+        sdf, scaling_percentile, = scale_trends(sdf, params)
+        scaling_dict[language] = scaling_percentile
+
+        X.append(sdf)
+        print("\t'{}'.".format(language))
+
+    # Pickle sub-dataframe with real NaN's to specified folder
+    X_nan = np.concatenate(X_nan)
     fileObject = open(params['path_data']+'X_nan.pkl', 'wb')
     pickle.dump(X_nan, fileObject)
     fileObject.close()
     del X_nan  # free memory
 
-    # Keep only complete observations for training
-    X = X[ ~np.isnan(X).any(axis = 1) ]
-
-
-    ###
-    ###  INSERIRE RNN_dataprep()
-    ###  qualcosa del tipo:  X = RNN_dataprep(X, params)
-    X = RNN_univariate_processing(X, params)
-
-
     # Shuffle and split in Train-Validation-Test based on input params
-    X = shuffle(X, random_state = params['seed'])
-    test_cutoff = int(X.shape[0] * ( 1 - params['val_test_ratio'][0] ))
-    val_cutoff = int(X.shape[0] * ( 1 - np.sum(params['val_test_ratio']) ))
-    V = X[ val_cutoff:test_cutoff , : ]
-    Y = X[ test_cutoff: , : ]
-    X = X[ :val_cutoff , : ]
+    # X = shuffle(X, random_state = params['seed'])
+    # test_cutoff = int(X.shape[0] * ( 1 - params['val_test_ratio'][0] ))
+    # val_cutoff = int(X.shape[0] * ( 1 - np.sum(params['val_test_ratio']) ))
+    #
+    # V = X[ val_cutoff:test_cutoff , : ]
+    # Y = X[ test_cutoff: , : ]
+    # X = X[ :val_cutoff , : ]
     return X, V, Y
+
+
+if __name__ == '__main__':
+    main()
