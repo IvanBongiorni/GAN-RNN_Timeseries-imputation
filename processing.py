@@ -64,7 +64,7 @@ def main(params):
     X_train = []
     X_val = []
     X_test = []
-    X_nan = []          # This is the remaining observations that contain NaN's and cannot be used
+
     scaling_dict = {}   # This is to save scaling params - by language subgroup
 
     for language in languages:
@@ -80,8 +80,7 @@ def main(params):
             series = tools.right_trim_nan( series )
             sdf[ i , : ] = series
 
-        # Extraction of obs with NaN's - not good for training
-        X_nan.append( sdf[ np.isnan(sdf).any(axis = 1) ] )  # take rows with NaN's out
+        # Extraction of NaN observations - not good for training
         sdf = sdf[ ~np.isnan(sdf).any(axis = 1) ]  # keep only complete obs for training
 
         ### SPLIT IN TRAIN - VAL - TEST
@@ -115,33 +114,25 @@ def main(params):
         X_val.append(sdf_val)
         X_test.append(sdf_test)
 
-        print("Lanuage '{}' executed in {} ss.".format(language, round(time.time()-start, 2)))
+        print("\tSub-dataframe for language '{}' executed in {} ss.".format(language, round(time.time()-start, 2)))
 
-
+    # Concatenate datasets (shuffle X_train for batch training)
     X_train = np.concatenate(X_train)
     shuffle = np.random.choice(X.shape[0], X.shape[0] replace = False)
     X_train = X_train[ shuffle , : ]
     X_train = pd.DataFrame(X_train)
-    X_train.to_pickle()
+    X_train.to_pickle(os.getcwd() + '/data_processed/X_train.pkl')
 
     X_val = np.concatenate(X_val)
     X_val = pd.DataFrame(X_val)
-    X_val.to_pickle()
+    X_val.to_pickle(os.getcwd() + '/data_processed/X_val.pkl')
 
     X_test = np.concatenate(X_test)
     X_test = pd.DataFrame(X_test)
-    X_test.to_pickle()
-
-    # Pickle sub-dataframe with real NaN's to specified folder
-    X_nan = np.concatenate(X_nan)
-    fileObject = open( os.getcwd + '/data/X_nan.pkl', 'wb')
-    pickle.dump(X_nan, fileObject)
-    fileObject.close()
+    X_test.to_pickle(os.getcwd() + '/data_processed/X_test.pkl')
 
     # Save scaling params to file
-    yaml.dump(scaling_dict,
-              open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'),
-              default_flow_style = False)
+    yaml.dump(scaling_dict, open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'))
 
     return None
 
