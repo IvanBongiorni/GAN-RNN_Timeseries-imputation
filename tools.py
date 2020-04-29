@@ -5,7 +5,10 @@ Author: Ivan Bongiorni
 Tools for data processing pipeline. These are more technical functions to be iterated during
 main pipeline run.
 """
+import numba
 
+
+@numba.jit(python = True)
 def left_zero_fill(x):
     if np.isfinite(x[0]):
         return x
@@ -49,6 +52,37 @@ def process_url(url):
         'agent': [agent]
     })
     return url_features
+
+
+@numba.jit(python = True)
+def scale_trends(x, percentile_99th):
+    """
+    Takes a linguistic sub-dataframe and applies a robust custom scaling in two steps:
+        1. log( x + 1 )
+        2. Robust min-max scaling to [ 0, 99th percentile ]
+    Returns scaled sub-df and scaling percentile, to be saved later in scaling dict
+    """
+    import numpy as np
+
+    # Scaling parameters must be calculated without Validation data
+    cut = int(x.shape[1] * (1 - (params['val_test_size'][0] + params['val_test_size'][1])))
+    percentile_99th = np.percentile(X[ : , :cut ]), 99)
+
+    x = np.log(x + 1)
+    x = ( x - np.min(x) ) / ( percentile_99th - np.min(x) )
+    return X
+
+
+@numba.jit(python = True)
+def right_trim_nan(x):
+    """ Trims all NaN's on the right """
+    import numpy as np
+
+    if np.isnan(x[-1]):
+        cut = np.argmax(np.isfinite(x[::-1]))
+        return x[ :-cut ]
+    else:
+        return x
 
 
 def RNN_univariate_processing(series, params):

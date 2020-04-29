@@ -46,21 +46,27 @@ def main(params):
        a dataset of complete trends for training
     4. Shuffles dataset and operates Train-Validation-Test split based on params
     '''
+    import os
     import pickle
     import numpy as np
+    np.random.seed(params['seed'])
 
     languages = [ 'en', 'ja', 'de', 'fr', 'zh', 'ru', 'es', 'na' ]
 
-    df = pd.read_csv('{}train_2.csv'.format(path_data))
+    print('Loading data.')
+    current_path = os.getcwd()
+    df = pd.read_csv(current_path + '/data/train2.csv')
 
     print('Extracting URL metadata from dataframe.')
     df, page_data = process_page_data(df)
 
     print('Preprocessing trends by language group.')
-    X = []              # This is the final training dataset
+    X_train = []
+    X_val = []
+    X_test = []
     X_nan = []          # This is the remaining observations that contain NaN's and cannot be used
     scaling_dict = {}   # This is to save scaling params - by language subgroup
-    
+
     for language in languages:
         sdf = df[ page_data['language'] == language ].values
         sdf_page_data = page_data[ page_data['language'] == language ].values
@@ -69,37 +75,81 @@ def main(params):
         for i in range(sdf.shape[0]):
             sdf[ i , : ] = tools.left_zero_fill( sdf[ i , : ] )
 
-        X_nan.append( sdf[ np.isnan(sdf).any(axis = 1) ] )  # Take rows with NaN's out
+        X_nan.append( sdf[ np.isnan(sdf).any(axis = 1) ] )  # take rows with NaN's out
 
-        # Keep only complete observations for training
-        sdf = sdf[ ~np.isnan(sdf).any(axis = 1) ]
+        sdf = sdf[ ~np.isnan(sdf).any(axis = 1) ]  # keep only complete obs for training
 
-        sdf = [ tools.right_trim(sdf[ i , : ], params) for i in range(sdf.shape[0]) ]
-        sdf = [ tools.RNN_univariate_processing(sdf[ i , : ], params) for i in range(sdf.shape[0]) ]
-        sdf = np.concatenate(sdf)
+        ### SPLIT IN TRAIN - VAL - TEST
+        # Generate random index to each row following 'val_test_size' Pr distribution
+        sample = np.random.choice(range(3),
+                                  sdf.shape[0],
+                                  p = [ 1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1]],
+                                  replace = True)
 
-        sdf, scaling_percentile, = scale_trends(sdf, params)
+        sdf_train = sdf[ sample == 0 ]
+        sdf_val = sdf[ sample == 1 ]
+        sdf_test = sdf[ sample == 2 ]
+
+        # Right trim each series
+        sdf_train = [ tools.right_trim_nan(sdf_train[ i , : ], params) for i in range(sdf_train.shape[0]) ]
+        sdf_val = [ tools.right_trim_nan(sdf_val[ i , : ], params) for i in range(sdf_val.shape[0]) ]
+        sdf_test = [ tools.right_trim_nan(sdf_test[ i , : ], params) for i in range(sdf_test.shape[0]) ]
+
+        # Impute placeholder value
+        sdf_train = [ np.nan_to_num(series, nan = params['placeholder_value']) for series in sdf_train ]
+        sdf_val = [ np.nan_to_num(series, nan = params['placeholder_value']) for series in sdf_val ]
+        sdf_test = [ np.nan_to_num(series, nan = params['placeholder_value']) for series in sdf_test ]
+
+        # Process to RNN format ('sliding window' to input series)
+        sdf_train = [ tools.RNN_univariate_processing(series, params) for series in sdf_train ]
+        sdf_val = [ tools.RNN_univariate_processing(series, params) for series in sdf_val ]
+        sdf_test = [ tools.RNN_univariate_processing(series, params) for series in sdf_test ]
+
+        # Pack into final array
+        sdf_train = np.concatenate(sdf_train)
+        sdf_val = np.concatenate(sdf_val)
+        sdf_test = np.concatenate(sdf_test)
+
+        # Scale and save param into dict
+        scaling_percentile = np.percentile(sdf_train, 99)
+        sdf_train = scale_trends(sdf, scaling_percentile)
+        sdf_val = scale_trends(sdf_val, scaling_percentile)
+        sdf_test = scale_trends(sdf_val, scaling_percentile)
         scaling_dict[language] = scaling_percentile
 
-        X.append(sdf)
+        X_train.append(sdf_train)
+        X_val.append(sdf_val)
+        X_test.append(sdf_test)
+
         print("\t'{}'.".format(language))
+
+
+    X_train = np.concatenate(X_train)
+    shuffle = np.random.choice(X.shape[0], X.shape[0] replace = False)
+    X_train = X_train[ shuffle , : ]
+    X_train = pd.DataFrame(X_train)
+    X_train.to_pickle()
+
+    X_val = np.concatenate(X_val)
+    X_val = pd.DataFrame(X_val)
+    X_val.to_pickle()
+
+    X_test = np.concatenate(X_test)
+    X_test = pd.DataFrame(X_test)
+    X_test.to_pickle()
 
     # Pickle sub-dataframe with real NaN's to specified folder
     X_nan = np.concatenate(X_nan)
-    fileObject = open(params['path_data']+'X_nan.pkl', 'wb')
+    fileObject = open( os.getcwd + '/data/X_nan.pkl', 'wb')
     pickle.dump(X_nan, fileObject)
     fileObject.close()
-    del X_nan  # free memory
 
-    # Shuffle and split in Train-Validation-Test based on input params
-    # X = shuffle(X, random_state = params['seed'])
-    # test_cutoff = int(X.shape[0] * ( 1 - params['val_test_ratio'][0] ))
-    # val_cutoff = int(X.shape[0] * ( 1 - np.sum(params['val_test_ratio']) ))
-    #
-    # V = X[ val_cutoff:test_cutoff , : ]
-    # Y = X[ test_cutoff: , : ]
-    # X = X[ :val_cutoff , : ]
-    return X, V, Y
+    # Save scaling params to file
+    yaml.dump(scaling_dict,
+              open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'),
+              default_flow_style = False)
+
+    return None
 
 
 if __name__ == '__main__':
