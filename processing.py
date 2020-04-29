@@ -68,15 +68,20 @@ def main(params):
     scaling_dict = {}   # This is to save scaling params - by language subgroup
 
     for language in languages:
+        start = time.time()
+
         sdf = df[ page_data['language'] == language ].values
         sdf_page_data = page_data[ page_data['language'] == language ].values
 
-        # Fill left-NaN's with zero
+        # Fill left-NaN's with zeros and trim right NaN's
         for i in range(sdf.shape[0]):
-            sdf[ i , : ] = tools.left_zero_fill( sdf[ i , : ] )
+            sdf[ i , : ] = series
+            series = tools.left_zero_fill( series )
+            series = tools.right_trim_nan( series )
+            sdf[ i , : ] = series
 
+        # Extraction of obs with NaN's - not good for training
         X_nan.append( sdf[ np.isnan(sdf).any(axis = 1) ] )  # take rows with NaN's out
-
         sdf = sdf[ ~np.isnan(sdf).any(axis = 1) ]  # keep only complete obs for training
 
         ### SPLIT IN TRAIN - VAL - TEST
@@ -85,30 +90,9 @@ def main(params):
                                   sdf.shape[0],
                                   p = [ 1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1]],
                                   replace = True)
-
         sdf_train = sdf[ sample == 0 ]
         sdf_val = sdf[ sample == 1 ]
         sdf_test = sdf[ sample == 2 ]
-
-        # Right trim each series
-        sdf_train = [ tools.right_trim_nan(sdf_train[ i , : ], params) for i in range(sdf_train.shape[0]) ]
-        sdf_val = [ tools.right_trim_nan(sdf_val[ i , : ], params) for i in range(sdf_val.shape[0]) ]
-        sdf_test = [ tools.right_trim_nan(sdf_test[ i , : ], params) for i in range(sdf_test.shape[0]) ]
-
-        # Impute placeholder value
-        sdf_train = [ np.nan_to_num(series, nan = params['placeholder_value']) for series in sdf_train ]
-        sdf_val = [ np.nan_to_num(series, nan = params['placeholder_value']) for series in sdf_val ]
-        sdf_test = [ np.nan_to_num(series, nan = params['placeholder_value']) for series in sdf_test ]
-
-        # Process to RNN format ('sliding window' to input series)
-        sdf_train = [ tools.RNN_univariate_processing(series, params) for series in sdf_train ]
-        sdf_val = [ tools.RNN_univariate_processing(series, params) for series in sdf_val ]
-        sdf_test = [ tools.RNN_univariate_processing(series, params) for series in sdf_test ]
-
-        # Pack into final array
-        sdf_train = np.concatenate(sdf_train)
-        sdf_val = np.concatenate(sdf_val)
-        sdf_test = np.concatenate(sdf_test)
 
         # Scale and save param into dict
         scaling_percentile = np.percentile(sdf_train, 99)
@@ -117,11 +101,21 @@ def main(params):
         sdf_test = scale_trends(sdf_val, scaling_percentile)
         scaling_dict[language] = scaling_percentile
 
+        # Process to RNN format ('sliding window' to input series) and pack into final array
+        sdf_train = [ tools.RNN_univariate_processing(series, params) for series in sdf_train ]
+        sdf_train = np.concatenate(sdf_train)
+
+        sdf_val = [ tools.RNN_univariate_processing(series, params) for series in sdf_val ]
+        sdf_val = np.concatenate(sdf_val)
+
+        sdf_test = [ tools.RNN_univariate_processing(series, params) for series in sdf_test ]
+        sdf_test = np.concatenate(sdf_test)
+
         X_train.append(sdf_train)
         X_val.append(sdf_val)
         X_test.append(sdf_test)
 
-        print("\t'{}'.".format(language))
+        print("Lanuage '{}' executed in {} ss.".format(language, round(time.time()-start, 2)))
 
 
     X_train = np.concatenate(X_train)
