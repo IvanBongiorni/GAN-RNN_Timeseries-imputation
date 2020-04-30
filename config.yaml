@@ -24,7 +24,7 @@ discriminator_activation: 'elu'
 
 # TRAINING PARAMETERS
 seed: 123
-val_test_ratio: [0.1, 0.1]
+val_test_ratio: [0.05, 0.1]
 
 
 # DETERIORATION PARAMETERS
