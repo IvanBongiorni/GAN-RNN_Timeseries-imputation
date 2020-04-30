@@ -6,16 +6,8 @@ Data preprocessing pipeline. Separated from model implementation and training.
 """
 import tools
 
-def _load_raw_dataset(path_data):
-    import numpy as np
-    import pandas as pd
 
-    df.drop('Page', axis = 1, inplace = True)
-    df = df.values
-    return df
-
-
-def process_page_data(df):
+def get_page_language(df):
     """
     Attaches page data to main df by iterating process_url() from
     dataprep_tools.py:
@@ -28,13 +20,11 @@ def process_page_data(df):
     import pandas as pd
     import tools  # local module
 
-    page_data = [ tools.process_url(url) for url in df['Page'].tolist() ]
-    page_data = pd.concat(page_data, axis = 0)
-    page_data.reset_index(drop = True, inplace = True)
+    page_lang = [ tools.process_url(url) for url in df['Page'].tolist() ]
+    page_lang = pd.Series(page_data)
 
-    page_data['Page'] = df['Page'].copy()  # Attach 'Page' to page_data for merging
     df.drop('Page', axis = 1, inplace = True)
-    return df, page_data
+    return df, page_lang
 
 
 def main(params):
@@ -58,7 +48,7 @@ def main(params):
     df = pd.read_csv(current_path + '/data/train2.csv')
 
     print('Extracting URL metadata from dataframe.')
-    df, page_data = process_page_data(df)
+    df, page_lang = get_page_language(df)
 
     print('Preprocessing trends by language group.')
     X_train = []
@@ -70,35 +60,45 @@ def main(params):
     for language in languages:
         start = time.time()
 
-        sdf = df[ page_data['language'] == language ].values
-        sdf_page_data = page_data[ page_data['language'] == language ].values
-
-        # Fill left-NaN's with zeros and trim right NaN's
-        for i in range(sdf.shape[0]):
-            sdf[ i , : ] = series
-            series = tools.left_zero_fill( series )
-            series = tools.right_trim_nan( series )
-            sdf[ i , : ] = series
-
-        # Extraction of NaN observations - not good for training
-        sdf = sdf[ ~np.isnan(sdf).any(axis = 1) ]  # keep only complete obs for training
+        sdf = df[ page_lang['language'] == language ].values
+        sdf_lang = page_lang[ page_lang['language'] == language ].values
 
         ### SPLIT IN TRAIN - VAL - TEST
         # Generate random index to each row following 'val_test_size' Pr distribution
         sample = np.random.choice(range(3),
-                                  sdf.shape[0],
-                                  p = [ 1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1]],
-                                  replace = True)
+        sdf.shape[0],
+        p = [ 1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1]],
+        replace = True)
         sdf_train = sdf[ sample == 0 ]
         sdf_val = sdf[ sample == 1 ]
         sdf_test = sdf[ sample == 2 ]
 
         # Scale and save param into dict
-        scaling_percentile = np.percentile(sdf_train, 99)
+        scaling_percentile = np.nanpercentile(sdf_train, 99)  # np.nanpercentile excludes NaN's from computation
         sdf_train = scale_trends(sdf, scaling_percentile)
         sdf_val = scale_trends(sdf_val, scaling_percentile)
         sdf_test = scale_trends(sdf_val, scaling_percentile)
         scaling_dict[language] = scaling_percentile
+
+        # Fill left-NaN's with zeros
+        sdf_train = [ tools.left_zero_fill(sdf_train[ i , : ]) for i in range(sdf_train.shape[0]) ]
+        sdf_val = [ tools.left_zero_fill(sdf_val[ i , : ]) for i in range(sdf_val.shape[0]) ]
+        sdf_test = [ tools.left_zero_fill(sdf_test[ i , : ]) for i in range(sdf_test.shape[0]) ]
+
+        # Trim right-NaN's
+        sdf_train = [ tools.right_trim_nan(series, params) for series in sdf_train ]
+        sdf_val = [ tools.right_trim_nan(series, params) for series in sdf_val ]
+        sdf_test = [ tools.right_trim_nan(series, params) for series in sdf_test ]
+
+        # Exclude trends that still contain internal NaN's
+        sdf_train = [ series for series in sdf_train if np.sum(np.isnan(series)) = 0 ]
+        sdf_val = [ series for series in sdf_val if np.sum(np.isnan(series)) = 0 ]
+        sdf_test = [ series for series in sdf_test if np.sum(np.isnan(series)) = 0 ]
+
+        # Exclude trends that are not long enough to be fed into the series
+        sdf_train = [ series for series in sdf_train if len(series) >= params['len_input'] ]
+        sdf_val = [ series for series in sdf_val if len(series) >= params['len_input'] ]
+        sdf_test = [ series for series in sdf_test if len(series) >= params['len_input'] ]
 
         # Process to RNN format ('sliding window' to input series) and pack into final array
         sdf_train = [ tools.RNN_univariate_processing(series, params) for series in sdf_train ]
@@ -116,20 +116,17 @@ def main(params):
 
         print("\tSub-dataframe for language '{}' executed in {} ss.".format(language, round(time.time()-start, 2)))
 
-    # Concatenate datasets (shuffle X_train for batch training)
     X_train = np.concatenate(X_train)
+    X_val = np.concatenate(X_val)
+    X_test = np.concatenate(X_test)
+    
+    # shuffle X_train for batch training
     shuffle = np.random.choice(X.shape[0], X.shape[0] replace = False)
     X_train = X_train[ shuffle , : ]
-    X_train = pd.DataFrame(X_train)
-    X_train.to_pickle(os.getcwd() + '/data_processed/X_train.pkl')
 
-    X_val = np.concatenate(X_val)
-    X_val = pd.DataFrame(X_val)
-    X_val.to_pickle(os.getcwd() + '/data_processed/X_val.pkl')
-
-    X_test = np.concatenate(X_test)
-    X_test = pd.DataFrame(X_test)
-    X_test.to_pickle(os.getcwd() + '/data_processed/X_test.pkl')
+    pickle.dump(X_train, open( os.getcwd() + '/data_processed/X_train.pkl' ))
+    pickle.dump(X_val, open( os.getcwd() + '/data_processed/X_train.pkl' ))
+    pickle.dump(X_test, open(os.getcwd() + '/data_processed/X_val.pkl'))
 
     # Save scaling params to file
     yaml.dump(scaling_dict, open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'))
