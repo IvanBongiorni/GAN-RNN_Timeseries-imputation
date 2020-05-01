@@ -1,30 +1,32 @@
+# TRAINING PARAMETERS
+seed: 123
+val_test_ratio: [0.05, 0.1]
+
+
 # MODEL HYPERPARAMETERS
 model_name: 'model_00'
 gan: True
 
-encoder_lstm_units: 500
+len_input: 250
+encoder_lstm_units: 250
 
 conv_filters: [8, 16]
 conv_activation: 'elu'
 conv_initializer: 'he_normal'
 use_batchnorm: True
 
-decoder_lstm_units: 500
+decoder_lstm_units: 250
 decoder_dense_units: 200
 decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
 
+
 # GAN HYPERPARAMETERS
 noise_dims: 50
-discriminator_lstm_units: 500
+discriminator_lstm_units: 250
 
 discriminator_dense_units: 200
 discriminator_activation: 'elu'
-
-
-# TRAINING PARAMETERS
-seed: 123
-val_test_ratio: [0.05, 0.1]
 
 
 # DETERIORATION PARAMETERS
