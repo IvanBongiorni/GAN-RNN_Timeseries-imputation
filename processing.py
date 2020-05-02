@@ -7,59 +7,36 @@ Data preprocessing pipeline. Separated from model implementation and training.
 import tools
 
 
-# def apply_processing_transformations(array, params, scaling_percentile):
-#     '''
-#     Wrapper of the main data transformations. Since they had to be repeated on
-#     Train, Validation, Test sets, I packed a funtion to avoid repetitions.
-#     '''
-#     import numpy as np
-#     import tools  # local module
-#
-#     # Scale trends
-#     array = tools.scale_trends(array, scaling_percentile)
-#
-#     # Fill left-NaN's with zeros
-#     array = [ tools.left_zero_fill(array[ i , : ]) for i in range(array.shape[0]) ]
-#
-#     # Trim right-NaN's
-#     array = [ tools.right_trim_nan(series) for series in array ]
-#
-#     # Exclude trends that still contain internal NaN's
-#     array = [ series for series in array if np.sum(np.isnan(series)) == 0 ]
-#
-#     # Exclude trends that are not long enough to be fed into the series
-#     array = [ series for series in array if len(series) >= params['len_input'] ]
-#
-#     # Process to RNN format ('sliding window' to input series) and pack into final array
-#     array = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in array ]
-#
-#     array = np.concatenate(array)
-#     return array
-
-
-def assemble_dataframe(languages, data):
+def apply_processing_transformations(array, params, scaling_percentile):
     '''
-    This function is due to memory problems, not all dataframes can be loaded in
-    RAM at the same time.
-
-    Loads all preprocessed sub-dataframes and compacts them into one final array.
-    It must repeated three times, for Train, Validation and Test matrices.
-    Arg 'data' must be either 'train', 'val', or 'test'
+    Wrapper of the main data transformations. Since they had to be repeated on
+    Train, Validation, Test sets, I packed a funtion to avoid repetitions.
     '''
-    import os
-    import pickle
     import numpy as np
+    import tools  # local module
 
-    X_final = []
+    len_raw_trend = array.shape[1]
 
-    for language in languages:
-        sdf_lang = np.load(os.getcwd() + '/data_processed/sdf_{}_{}.npy'.format(language, data),
-                           allow_pickle = True)
-        X_final.append(sdf_lang)
-        del sdf_lang
+    # Scale trends
+    array = tools.scale_trends(array, scaling_percentile)
 
-    X_final = np.concatenate(X_final)
-    return X_final
+    # Fill left-NaN's with zeros
+    array = [ tools.left_zero_fill(array[ i , : ]) for i in range(array.shape[0]) ]
+
+    # Trim right-NaN's
+    array = [ tools.right_trim_nan(series) for series in array ]
+
+    # Exclude trends that still contain internal NaN's
+    array = [ series for series in array if np.sum(np.isnan(series)) == 0 ]
+
+    # Exclude trends that are not long enough to be fed into the series
+    array = [ series for series in array if len(series) >= params['len_input'] ]
+
+    # Refill the NaN's on the right for stacking back to matrix and saving
+    array = [ np.concatenate([series, np.repeat(np.nan, len_raw_trend-len(series))]) if len(series) < len_raw_trend else series for series in array ]
+    array = np.stack(array)
+
+    return array
 
 
 def processing_main():
@@ -78,6 +55,8 @@ def processing_main():
     import numpy as np
     import pandas as pd
 
+    pipeline_start = time.time()
+
     languages = [ 'en', 'ja', 'de', 'fr', 'zh', 'ru', 'es', 'na' ]
 
     print('\nStart data processing pipeline.\n')
@@ -90,9 +69,12 @@ def processing_main():
     page_lang = pd.Series(page_lang)
     df.drop('Page', axis = 1, inplace = True)
 
-    print('Preprocessing trends by language group.')
+    print('Preprocessing trends by language group:')
     np.random.seed(params['seed'])
 
+    X_train = []
+    X_val = []
+    X_test = []
     scaling_dict = {}   # This is to save scaling params - by language subgroup
 
     for language in languages:
@@ -103,64 +85,76 @@ def processing_main():
         ### SPLIT IN TRAIN - VAL - TEST
         # Generate random index to each row following 'val_test_size' Pr distribution
         sample = np.random.choice(range(3),
-        sdf.shape[0],
-        p = [ 1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1]],
-        replace = True)
+                                  sdf.shape[0],
+                                  p = [1-np.sum(params['val_test_ratio']),
+                                       params['val_test_ratio'][0],
+                                       params['val_test_ratio'][1]],
+                                  replace = True)
         sdf_train = sdf[ sample == 0 ]
         sdf_val = sdf[ sample == 1 ]
         sdf_test = sdf[ sample == 2 ]
         del sdf # free memory
-
-        ### I MUST TRANSFER PROCESSING PIPELINE ON SCRATCH, DURING TRAINING
 
         # Scale and save param into dict
         scaling_percentile = np.nanpercentile(sdf_train, 99)  # np.nanpercentile ignores NaN's
         scaling_dict[language] = float(scaling_percentile)
 
         # Apply sequence of processing transformations, save to folder, and del sdf's to free memory
-        # sdf_train = apply_processing_transformations(sdf_train, params, scaling_percentile)
-        # np.save(os.getcwd() + '/data_processed/sdf_{}_train'.format(language), sdf_train)
-        # del sdf_train
+        sdf_train = apply_processing_transformations(sdf_train, params, scaling_percentile)
 
-        # sdf_val = apply_processing_transformations(sdf_val, params, scaling_percentile)
-        # np.save(os.getcwd() + '/data_processed/sdf_{}_val'.format(language), sdf_val)
-        # del sdf_val
 
-        # sdf_test = apply_processing_transformations(sdf_test, params, scaling_percentile)
-        # np.save(os.getcwd() + '/data_processed/sdf_{}_test'.format(language), sdf_test)
-        # del sdf_test
+        X_train.append(sdf_train)
+        del sdf_train
+
+        sdf_val = apply_processing_transformations(sdf_val, params, scaling_percentile)
+        X_val.append(sdf_val)
+        del sdf_val
+
+        sdf_test = apply_processing_transformations(sdf_test, params, scaling_percentile)
+        X_test.append(X_test)
+        del sdf_test
 
         print("\tSub-dataframe for language '{}' executed in {} ss.".format(
             language, round(time.time()-start, 2)))
 
+    print('Saving processed data at:\n{}'.format(os.getcwd() + '/data_processed/'))
+
+    print('check X_train:')
+    for x in X_train:
+        print(x.shape)
+
+    X_train = np.concatenate(X_train)
+    # Shuffle X_train only, before training
+    shuffle = np.random.choice(X_train.shape[0], X_train.shape[0], replace = False)
+    X_train = X_train[ shuffle , : ]
+    np.save(os.getcwd() + '/data_processed/X_train', X_train)
+    print('\tX_train: \t{}'.format(X_train.shape))
+    del X_train
+
+
+    print('check X_val:')
+    for x in X_val:
+        print(x.shape)
+
+    X_val = np.concatenate(X_val)
+    np.save(os.getcwd() + '/data_processed/X_val', X_val)
+    print('\tX_val:   \t{}'.format(X_val.shape))
+    del X_val
+
+
+    print('check X_test:')
+    for x in X_test:
+        print(type(x))
+    
+    X_test = np.concatenate(X_test)
+    np.save(os.getcwd() + '/data_processed/X_test', X_test)
+    print('\tX_test:  \t'.format(X_test.shape))
+    del X_test
+
     # Save scaling params to file
     yaml.dump(scaling_dict, open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'))
 
-    # print('Assembling Train, Validation, Test datasets.')
-    # # Assemble and save datasets, free memory, delete temporary sdf files
-    # X_train = assemble_dataframe(languages, 'train')
-    #
-    # Shuffle X_train only before training
-    # shuffle = np.random.choice(X_train.shape[0], X_train.shape[0], replace = False)
-    # X_train = X_train[ shuffle , : ]
-    # np.save(os.getcwd() + '/data_processed/X_train', X_train)
-    # del X_train
-    # for language in languages:
-    #     os.remove(os.getcwd() + '/data_processed/sdf_{}_train.npy'.format(language))
-    #
-    # X_val = assemble_dataframe(languages, 'val')
-    # np.save(os.getcwd() + '/data_processed/X_val', X_val)
-    # del X_val
-    # for language in languages:
-    #     os.remove(os.getcwd() + '/data_processed/sdf_{}_train.npy'.format(language))
-    #
-    # X_test = assemble_dataframe(languages, 'test')
-    # np.save(os.getcwd() + '/data_processed/X_test', X_test)
-    # del X_test
-    # for language in languages:
-    #     os.remove(os.getcwd() + '/data_processed/sdf_{}_test.npy'.format(language))
-
-    print('Processed datasets saved at:\n{}'.format(os.getcwd() + '/data_processed/'))
+    print('Pipeline executed in {} ss.'.format(round(time.time()-pipeline_start, 2)))
     return None
 
 

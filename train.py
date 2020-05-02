@@ -8,23 +8,66 @@ Implementation of two training function:
  - "Vanilla" seq2seq model
  - GAN seq2seq.
 """
+import os
+import time
+import pickle
+from pdb import set_trace as BP
+
+import numpy as np
+import tensorflow as tf
+
+# local modules
+import deterioration
+import tools
 
 
-def train(model, params, X_train, Y_train, X_val, Y_val):
+def fetch_processed_batch(X_train, X_index, iteration, batch_size):
+    import numpy as np
+
+    # local modules
+    import deterioration
+    import tools
+
+    take = iteration * batch_size
+    batch_index = X_index[ take:take + batch_size , : ]
+    X_batch = [ X_train[ i , : ] for i in batch_index ]
+
+    # Trim NaN's left (after processing pipeline, they should all be the right ones)
+    X_batch = [ series[ np.isfinite(series) ] for series in  ]  # Trends not long enough have already been filtered in processing.py
+
+    # Apply artificial deterioration
+    X_batch = [ deterioration.apply(series, params) for series in X_batch ]
+
+    # Process to RNN format ('sliding window' to input series) and pack into final array
+    X_batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in array ]
+
+    X_batch = np.concatenate(X_batch)
+
+    # Fill NaN's 'with placeholder_value'
+    X_batch[ np.isnan(X_batch) ] = params['placeholder_value']
+
+    return X_batch
+
+
+def train(model, params, X_train, X_val):
     import time
     import numpy as np
     import tensorflow as tf
 
+    # local modules
+    import deterioration
+    import tools
+
+    # I will use this index to speed up fetching mini batches and reshuffles
+    X_index = np.array(range(X_train.shape[0]))
+
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
+    loss = tf.keras.losses.MeanAbsoluteError()
 
     @tf.function
-    def train_on_batch():
-        take = iteration * batch_size
-        X_batch = X_train[ take:take+batch_size , : ]
-        Y_batch = Y_train[ take:take+batch_size , : ]
-
+    def train_on_batch(X_batch):
         with tf.GrandientTape() as tape:
-            current_loss = tf.keras.losses.BinaryCrossentropy(Y_batch, model(X_batch))
+            current_loss = loss(X_batch, model(X_batch))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
@@ -32,20 +75,27 @@ def train(model, params, X_train, Y_train, X_val, Y_val):
     for epoch in range(params['n_epochs']):
         start = time.time()
 
+        if params['shuffle']:
+            shuffle = np.random.choice(len(X_index), len(X_index), replace = False)
+            X_index = X_index[ shuffle ]
+
         for iteration in range(X_train.shape[0] // params['batch_size']):
-            current_loss = train_on_batch()
-            # loss_history.append(current_loss)
+            X_batch = fetch_processed_batch(X_train, X_index, iteration, params['batch_size'])
+            current_loss = train_on_batch(X_batch)
 
-        validation_loss = tf.reduce_mean(
-            tf.keras.losses.sparse_categorical_crossentropy(Y_val, model(X_val),
-                                                            from_logits = True))
+    # Sample some val_batch
 
-        print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-            epoch,
-            current_loss.numpy(),
-            validation_loss.numpy(),
-            round(time.time()-start, 2)
-        ))
+    ### IMPORTANT: VALIDATION LOSS MUST BE EXECUTED
+
+
+    validation_loss = (X_val, model(X_val))
+
+    print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
+        epoch,
+        current_loss.numpy(),
+        validation_loss.numpy(),
+        round(time.time()-start, 2)
+    ))
     print('Training complete.\n')
 
     model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
