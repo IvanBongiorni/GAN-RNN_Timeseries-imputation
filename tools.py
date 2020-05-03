@@ -47,7 +47,7 @@ def scale_trends(x, scaling_percentile):
     import numpy as np
 
     x = np.log(x + 1)
-    x = x / scaling_percentile
+    x = x / np.log(scaling_percentile+1)
     return x
 
 
@@ -70,7 +70,7 @@ def RNN_univariate_processing(series, len_input):
     # https://github.com/IvanBongiorni/TensorFlow2.0_Notebooks/blob/master/TensorFlow2.0__04.02_RNN_many2many.ipynb
     import numpy as np
     import numpy as np
-    
+
     S = [ series[i : i+len_input] for i in range(len(series)-len_input+1) ]
     S = np.stack(S)
 

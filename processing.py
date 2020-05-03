@@ -4,6 +4,13 @@ Author: Ivan Bongiorni
 
 Data preprocessing pipeline. Separated from model implementation and training.
 """
+import os
+import time
+from pdb import set_trace as BP
+
+import numpy as np
+import pandas as pd
+
 import tools
 
 
@@ -101,8 +108,6 @@ def processing_main():
 
         # Apply sequence of processing transformations, save to folder, and del sdf's to free memory
         sdf_train = apply_processing_transformations(sdf_train, params, scaling_percentile)
-
-
         X_train.append(sdf_train)
         del sdf_train
 
@@ -111,50 +116,35 @@ def processing_main():
         del sdf_val
 
         sdf_test = apply_processing_transformations(sdf_test, params, scaling_percentile)
-        X_test.append(X_test)
+        X_test.append(sdf_test)
         del sdf_test
 
         print("\tSub-dataframe for language '{}' executed in {} ss.".format(
             language, round(time.time()-start, 2)))
 
-    print('Saving processed data at:\n{}'.format(os.getcwd() + '/data_processed/'))
-
-    print('check X_train:')
-    for x in X_train:
-        print(x.shape)
+    print('Saving processed data as:')
 
     X_train = np.concatenate(X_train)
     # Shuffle X_train only, before training
     shuffle = np.random.choice(X_train.shape[0], X_train.shape[0], replace = False)
     X_train = X_train[ shuffle , : ]
     np.save(os.getcwd() + '/data_processed/X_train', X_train)
-    print('\tX_train: \t{}'.format(X_train.shape))
-    del X_train
-
-
-    print('check X_val:')
-    for x in X_val:
-        print(x.shape)
+    print('\tX_train:\t', X_train.shape)
 
     X_val = np.concatenate(X_val)
     np.save(os.getcwd() + '/data_processed/X_val', X_val)
-    print('\tX_val:   \t{}'.format(X_val.shape))
-    del X_val
+    print('\tX_val:  \t', X_val.shape)
 
-
-    print('check X_test:')
-    for x in X_test:
-        print(type(x))
-    
     X_test = np.concatenate(X_test)
     np.save(os.getcwd() + '/data_processed/X_test', X_test)
-    print('\tX_test:  \t'.format(X_test.shape))
-    del X_test
+    print('\tX_test:   \t', X_test.shape)
 
     # Save scaling params to file
     yaml.dump(scaling_dict, open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'))
 
-    print('Pipeline executed in {} ss.'.format(round(time.time()-pipeline_start, 2)))
+    print('\nat the following directory:\n{}'.format(os.getcwd() + '/data_processed/'))
+
+    print('\nPipeline executed in {} ss.\n'.format(round(time.time()-pipeline_start, 2)))
     return None
 
 
