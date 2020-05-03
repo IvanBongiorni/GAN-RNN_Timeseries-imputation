@@ -86,9 +86,8 @@ def train(model, params, X_train, X_val):
     # Sample some val_batch
 
     ### IMPORTANT: VALIDATION LOSS MUST BE EXECUTED
-
-
-    validation_loss = (X_val, model(X_val))
+    X_val = fetch_validation_batch()
+    validation_loss = loss(X_val, model(X_val))
 
     print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
         epoch,
