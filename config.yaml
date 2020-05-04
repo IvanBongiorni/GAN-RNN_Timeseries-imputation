@@ -3,7 +3,7 @@ seed: 123
 val_test_ratio: [0.06, 0.06]
 n_epochs: 50
 batch_size: 32
-validation_batch_size: 64
+val_batch_size: 128
 shuffle: True
 
 
