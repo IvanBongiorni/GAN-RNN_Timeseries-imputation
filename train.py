@@ -21,16 +21,10 @@ import deterioration
 import tools
 
 
-def fetch_processed_batch(X_train, X_index, iteration, batch_size):
+def process_batch(batch):
+    ''' Process a mini batch for training, works for Train anv Validation data. '''
     import numpy as np
-
-    # local modules
-    import deterioration
-    import tools
-
-    take = iteration * batch_size
-    batch_index = X_index[ take:take + batch_size , : ]
-    X_batch = [ X_train[ i , : ] for i in batch_index ]
+    import deterioration, tools  # local modules
 
     # Trim NaN's left (after processing pipeline, they should all be the right ones)
     X_batch = [ series[ np.isfinite(series) ] for series in  ]  # Trends not long enough have already been filtered in processing.py
@@ -49,7 +43,7 @@ def fetch_processed_batch(X_train, X_index, iteration, batch_size):
     return X_batch
 
 
-def train(model, params, X_train, X_val):
+def train(model, params, X, V):
     import time
     import numpy as np
     import tensorflow as tf
@@ -59,13 +53,13 @@ def train(model, params, X_train, X_val):
     import tools
 
     # I will use this index to speed up fetching mini batches and reshuffles
-    X_index = np.array(range(X_train.shape[0]))
+    X_index = np.array(range(X.shape[0]))
 
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     loss = tf.keras.losses.MeanAbsoluteError()
 
     @tf.function
-    def train_on_batch(X_batch):
+    def train_on_batch():
         with tf.GrandientTape() as tape:
             current_loss = loss(X_batch, model(X_batch))
         gradients = tape.gradient(current_loss, model.trainable_variables)
@@ -79,28 +73,34 @@ def train(model, params, X_train, X_val):
             shuffle = np.random.choice(len(X_index), len(X_index), replace = False)
             X_index = X_index[ shuffle ]
 
-        for iteration in range(X_train.shape[0] // params['batch_size']):
-            X_batch = fetch_processed_batch(X_train, X_index, iteration, params['batch_size'])
-            current_loss = train_on_batch(X_batch)
+        for iteration in range(X.shape[0] // params['batch_size']):
+            # Fetch batch
+            take = iteration * batch_size
+            batch_index = X_index[ take:take + batch_size , : ]
+            X_batch = X[ batch_index , : ]
 
-    # Sample some val_batch
+            X_batch = process_batch(X_batch)
+            current_loss = train_on_batch()
 
-    ### IMPORTANT: VALIDATION LOSS MUST BE EXECUTED
-    X_val = fetch_validation_batch()
-    validation_loss = loss(X_val, model(X_val))
+        # At the end of an epoch check Validation data
+        V_batch = [ np.random.choice(V.shape[0], params['val_batch_size'], replace = False) , : ]
+        V_batch = process_batch(V_batch)
+        validation_loss = loss(X_val, model(X_val))
 
-    print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-        epoch,
-        current_loss.numpy(),
-        validation_loss.numpy(),
-        round(time.time()-start, 2)
-    ))
-    print('Training complete.\n')
+        print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
+            epoch, current_loss.numpy(), validation_loss.numpy(), round(time.time()-start, 2)))
 
-    model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
-    print('Model saved at:\n\t{}'.format(params['save_path']))
+    print('\nTraining complete.\n')
+
+    model.save('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name']))
+    print('Model saved at:\n{}'.format('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name'])))
     return None
 
+
+
+################################################################################################
+###    GAN TRAINING IS STILL A WORK IN PROGRESS - DO NOT TOUCH UNTIL VANILLA TRAINING IS READY
+################################################################################################
 
 def train_GAN(generator, discriminator, X, V, params):
     import time
