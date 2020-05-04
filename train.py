@@ -21,26 +21,25 @@ import deterioration
 import tools
 
 
-def process_batch(batch):
-    ''' Process a mini batch for training, works for Train anv Validation data. '''
+def process_batch(batch, params):
+    '''
+    Process a mini batch for training, works for Train anv Validation data.
+    Steps:
+    Trim NaN's left (after processing pipeline, they should all be the right
+    ones). Trends too short already filtered in processing.py.
+    Apply artificial deterioration.
+    Process to RNN format ('sliding window' to input series) and pack into final array.
+    Fill NaN's 'with placeholder_value'.
+    '''
     import numpy as np
     import deterioration, tools  # local modules
 
-    # Trim NaN's left (after processing pipeline, they should all be the right ones)
-    X_batch = [ series[ np.isfinite(series) ] for series in  ]  # Trends not long enough have already been filtered in processing.py
-
-    # Apply artificial deterioration
-    X_batch = [ deterioration.apply(series, params) for series in X_batch ]
-
-    # Process to RNN format ('sliding window' to input series) and pack into final array
-    X_batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in array ]
-
-    X_batch = np.concatenate(X_batch)
-
-    # Fill NaN's 'with placeholder_value'
-    X_batch[ np.isnan(X_batch) ] = params['placeholder_value']
-
-    return X_batch
+    batch = [ np.isfinite(batch[ i , : ]) for i in range(batch.shape[0]) ]
+    batch = [ deterioration.apply(series, params) for series in batch ]
+    batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in batch ]
+    batch = np.concatenate(batch)
+    batch[ np.isnan(batch) ] = params['placeholder_value']
+    return batch
 
 
 def train(model, params, X, V):
@@ -79,12 +78,12 @@ def train(model, params, X, V):
             batch_index = X_index[ take:take + batch_size , : ]
             X_batch = X[ batch_index , : ]
 
-            X_batch = process_batch(X_batch)
+            X_batch = process_batch(X_batch, params)
             current_loss = train_on_batch()
 
         # At the end of an epoch check Validation data
-        V_batch = [ np.random.choice(V.shape[0], params['val_batch_size'], replace = False) , : ]
-        V_batch = process_batch(V_batch)
+        V_batch = V[ np.random.choice(V.shape[0], params['val_batch_size'], replace = False) , : ]
+        V_batch = process_batch(V_batch, params)
         validation_loss = loss(X_val, model(X_val))
 
         print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
@@ -150,8 +149,8 @@ def train_GAN(generator, discriminator, X, V, params):
     for epoch in range(params['n_epochs']):
         start = time.time()
 
-        if params['shuffle']:
-            ### AGGIUNGI SHUFFLE VELOCE, CON INDICE
+        # if params['shuffle']:
+        #     ### AGGIUNGI SHUFFLE VELOCE, CON INDICE
 
         for iteration in range(X.shape[0]//batch_size):
 

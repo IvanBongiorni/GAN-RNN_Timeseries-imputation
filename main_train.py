@@ -15,12 +15,12 @@ def train_main():
     import tensorflow as tf
 
     # local modules
-    import processing, model, train
+    import model, train
 
     print('\nStart Training Pipeline.\n')
 
     print('Loading Train and Validation data and configuration parameters.')
-    params = yaml.load()
+    params = yaml.load( open(os.getcwd() + '/config.yaml'), yaml.Loader )
     X = np.load( os.getcwd() + '/data_processed/X_train.npy' )
     V = np.load( os.getcwd() + '/data_processed/X_val.npy' )
 
