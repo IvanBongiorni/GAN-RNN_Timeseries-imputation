@@ -2,9 +2,11 @@
 Author: Ivan Bongiorni
 2020-05-02
 
-Deterioration function, must be iterated one series at a time. Placeholder values 
+Deterioration function, must be iterated one series at a time. Placeholder values
 from params dict will be fed in the training pipeline.
 """
+import numpy as np
+import scipy
 
 
 def _exponential_noise(x, exp_scale):
@@ -36,6 +38,7 @@ def apply(x, params):
     determines application of random noise. The second determines
     the addition of a blank interval. Else applies both.
     '''
+    import numpy as np
 
     if np.random.choice([0, 1], p = [1-params['prob_noise'], params['prob_noise']]):
         x = _exponential_noise(x, exp_scale = params['exp_scale'])
