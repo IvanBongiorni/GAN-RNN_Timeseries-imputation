@@ -2,10 +2,12 @@
 Author: Ivan Bongiorni
 2020-04-25
 
-This script loads pre-trained model and imputes missing data from Wikipedia Web Traffic Forecast Dataset.
+This script is the practical application of the final imputation model.
+It is meant to be used after all the runs, in order to produce imputations for the dataset,
+to be used for future projects.
 
-It is not part of the pipeline like other scripts, it's a practical application of the trained, final model.
-It must be run to obtain the imputed dataset, to be employed for further research.
+It loads pre-trained model and raw data, separates data with original NaN's and saves an
+imputed version of that subset.
 """
 
 
