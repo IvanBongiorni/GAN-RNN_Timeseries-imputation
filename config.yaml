@@ -1,7 +1,7 @@
 # TRAINING PARAMETERS
 seed: 123
 val_test_ratio: [0.06, 0.06]
-n_epochs: 50
+n_epochs: 5
 batch_size: 32
 val_batch_size: 128
 shuffle: True
@@ -9,7 +9,7 @@ shuffle: True
 
 # MODEL HYPERPARAMETERS
 model_name: 'model_00'
-gan: True
+gan: False
 
 len_input: 250
 encoder_lstm_units: 250
