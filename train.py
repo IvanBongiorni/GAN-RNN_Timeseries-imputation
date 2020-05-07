@@ -14,7 +14,17 @@ import pickle
 from pdb import set_trace as BP
 
 import numpy as np
+
 import tensorflow as tf
+# Solves Convolution CuDNN error
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
 
 # local modules
 import deterioration
@@ -39,17 +49,29 @@ def process_batch(batch, params):
     batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in batch ]
     batch = np.concatenate(batch)
     batch[ np.isnan(batch) ] = params['placeholder_value']
+
+    # ANN architectures require shape: ( n obs , input length , 1 )
+    batch = np.expand_dims(batch, axis = -1)
     return batch
 
 
-def train(model, params, X, V):
+def train(model, X, V, params):
     import time
     import numpy as np
     import tensorflow as tf
+    # Solves Convolution CuDNN error
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError as e:
+            print(e)
 
     # local modules
     import deterioration
     import tools
+
 
     # I will use this index to speed up fetching mini batches and reshuffles
     X_index = np.array(range(X.shape[0]))
@@ -59,7 +81,7 @@ def train(model, params, X, V):
 
     @tf.function
     def train_on_batch():
-        with tf.GrandientTape() as tape:
+        with tf.GradientTape() as tape:
             current_loss = loss(X_batch, model(X_batch))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -69,13 +91,12 @@ def train(model, params, X, V):
         start = time.time()
 
         if params['shuffle']:
-            shuffle = np.random.choice(len(X_index), len(X_index), replace = False)
-            X_index = X_index[ shuffle ]
+            X_index = X_index[ np.random.choice(len(X_index), len(X_index), replace = False) ]
 
         for iteration in range(X.shape[0] // params['batch_size']):
             # Fetch batch
-            take = iteration * batch_size
-            batch_index = X_index[ take:take + batch_size , : ]
+            take = iteration * params['batch_size']
+            batch_index = X_index[ take:take + params['batch_size'] ]
             X_batch = X[ batch_index , : ]
 
             X_batch = process_batch(X_batch, params)

@@ -1,28 +1,32 @@
-# TRAINING PARAMETERS
+# MAIN
+model_name: 'model_00'
+gan: False
+
+
+# MODEL HYPERPARAMETERS
 seed: 123
 val_test_ratio: [0.06, 0.06]
 n_epochs: 5
 batch_size: 32
 val_batch_size: 128
+learning_rate: 0.0001
 shuffle: True
-
-
-# MODEL HYPERPARAMETERS
-model_name: 'model_00'
-gan: False
 
 len_input: 250
 encoder_lstm_units: 250
 
+kernel_size: 3
 conv_filters: [8, 16]
 conv_activation: 'elu'
 conv_initializer: 'he_normal'
 use_batchnorm: True
+conv_dropout: 0.1
 
 decoder_lstm_units: 250
 decoder_dense_units: 200
 decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
+decoder_dense_dropout: 0.1
 
 
 # GAN HYPERPARAMETERS
