@@ -7,8 +7,8 @@ gan: False
 seed: 123
 val_test_ratio: [0.06, 0.06]
 n_epochs: 5
-batch_size: 32
-val_batch_size: 128
+batch_size: 1
+val_batch_size: 2
 learning_rate: 0.0001
 shuffle: True
 
@@ -22,8 +22,7 @@ conv_initializer: 'he_normal'
 use_batchnorm: True
 conv_dropout: 0.1
 
-decoder_lstm_units: 250
-decoder_dense_units: 200
+decoder_dense_units: 100
 decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
 decoder_dense_dropout: 0.1
