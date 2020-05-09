@@ -82,53 +82,53 @@ def build(params):
     return model
 
 
-def build_discriminator(params):
-    from tensorflow.keras.models import Model
-    from tensorflow.keras.layers import (
-        Input, LSTM, RepeatVector, Conv1D, BatchNormalization,
-        Concatenate, LSTM, TimeDistributed, Dense
-    )
-
-    # ENCODER
-    encoder_input = Input((params['len_input']), name = 'input')
-    encoder_lstm = LSTM(params['encoder_lstm_units'], name = 'encoder_lstm')(encoder_input)
-    encoder_output = RepeatVector(params['decoder_lstm_units'], name = 'encoder_output')(encoder_lstm)
-
-    # Conv block
-    conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
-                    padding = 'same', name = 'conv1')(encoder_input)
-    if params['use_batchnorm']:
-        conv_1 = BatchNormalization(name = 'batchnorm_1')(conv_1)
-
-    conv_2 = Conv1D(filters = params['conv_filters'][1], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
-                    padding = 'same', name = 'conv2')(conv_1)
-    if params['use_batchnorm']:
-        conv_2 = BatchNormalization(name = 'batcnorm_2')(conv_2)
-
-    attention = tf.nn.tanh(conv_2, name = 'attention')
-
-    # DECODER
-    concatenation = Concatenate(axis = -1, name = 'concatenation')([encoder_output, attention])
-
-    decoder_lstm = LSTM(params['decoder_lstm_units'], name = 'decoder_lstm')(concatenation)
-
-    decoder_dense = Dense(params['discriminator_dense_units'], activation = params['decoder_dense_activation'],
-                          name = 'discriminator_decoder_dense')(decoder_lstm)
-    decoder_output = Dense(1, activation = 'sigmoid', name = 'decoder_output')(decoder_dense)
-
-    discriminator = Model(inputs = [encoder_input], outputs = [decoder_output])
-    return discriminator
-
-
-def build_GAN(params):
-    '''
-    This is just a wrapper in case the model is trained as a GAN. In this case,
-    it calls the vanilla seq2seq as Generator, and calls build_discriminator() for
-    the Discriminator model, that follows the same structure, except for the last
-    two layers - ends with one node + Sigmoid activation for binary classification
-    '''
-    generator = build(params)
-    discriminator = build_discriminator(params)
-    return generator, discriminator
+# def build_discriminator(params):
+#     from tensorflow.keras.models import Model
+#     from tensorflow.keras.layers import (
+#         Input, LSTM, RepeatVector, Conv1D, BatchNormalization,
+#         Concatenate, LSTM, TimeDistributed, Dense
+#     )
+#
+#     # ENCODER
+#     encoder_input = Input((params['len_input']), name = 'input')
+#     encoder_lstm = LSTM(params['encoder_lstm_units'], name = 'encoder_lstm')(encoder_input)
+#     encoder_output = RepeatVector(params['decoder_lstm_units'], name = 'encoder_output')(encoder_lstm)
+#
+#     # Conv block
+#     conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'],
+#                     activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
+#                     padding = 'same', name = 'conv1')(encoder_input)
+#     if params['use_batchnorm']:
+#         conv_1 = BatchNormalization(name = 'batchnorm_1')(conv_1)
+#
+#     conv_2 = Conv1D(filters = params['conv_filters'][1], kernel_size = params['kernel_size'],
+#                     activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
+#                     padding = 'same', name = 'conv2')(conv_1)
+#     if params['use_batchnorm']:
+#         conv_2 = BatchNormalization(name = 'batcnorm_2')(conv_2)
+#
+#     attention = tf.nn.tanh(conv_2, name = 'attention')
+#
+#     # DECODER
+#     concatenation = Concatenate(axis = -1, name = 'concatenation')([encoder_output, attention])
+#
+#     decoder_lstm = LSTM(params['decoder_lstm_units'], name = 'decoder_lstm')(concatenation)
+#
+#     decoder_dense = Dense(params['discriminator_dense_units'], activation = params['decoder_dense_activation'],
+#                           name = 'discriminator_decoder_dense')(decoder_lstm)
+#     decoder_output = Dense(1, activation = 'sigmoid', name = 'decoder_output')(decoder_dense)
+#
+#     discriminator = Model(inputs = [encoder_input], outputs = [decoder_output])
+#     return discriminator
+#
+#
+# def build_GAN(params):
+#     '''
+#     This is just a wrapper in case the model is trained as a GAN. In this case,
+#     it calls the vanilla seq2seq as Generator, and calls build_discriminator() for
+#     the Discriminator model, that follows the same structure, except for the last
+#     two layers - ends with one node + Sigmoid activation for binary classification
+#     '''
+#     generator = build(params)
+#     discriminator = build_discriminator(params)
+#     return generator, discriminator

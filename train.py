@@ -12,8 +12,10 @@ import os
 import time
 import pickle
 from pdb import set_trace as BP
+
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 
 # local modules
 import deterioration
@@ -29,6 +31,8 @@ def process_batch(batch, params):
     Apply artificial deterioration.
     Process to RNN format ('sliding window' to input series) and pack into final array.
     Fill NaN's 'with placeholder_value'.
+
+    EXPLAIN THE SUB-FETCHING OF
     '''
     import numpy as np
     import deterioration, tools  # local modules
@@ -39,8 +43,12 @@ def process_batch(batch, params):
     batch = np.concatenate(batch)
     batch[ np.isnan(batch) ] = params['placeholder_value']
 
-    # ANN architectures require shape: ( n obs , input length , 1 )
+    # Subsample mini batch to allow faster training and higher stochasticity of training
+    batch = batch[ np.random.choice(batch.shape[0], params['batch_size'], replace = False) , : ]
+
+    # ANN requires shape: ( n obs , len input , 1 )
     batch = np.expand_dims(batch, axis = -1)
+
     return batch
 
 
@@ -48,8 +56,7 @@ def train(model, X, V, params):
     import time
     import numpy as np
 
-    # I will use this index to speed up fetching mini batches and reshuffles
-    X_index = np.array(range(X.shape[0]))
+    X_index = np.array(range(X.shape[0]))  # index X for faster fetch batch and shuffle
 
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     loss = tf.keras.losses.MeanAbsoluteError()
@@ -62,35 +69,48 @@ def train(model, X, V, params):
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
 
+    ## Training session starts
+
     for epoch in range(params['n_epochs']):
-        start = time.time()
 
         if params['shuffle']:
             X_index = X_index[ np.random.choice(len(X_index), len(X_index), replace = False) ]
 
-        for iteration in range(X.shape[0] // params['batch_size']):
+        # for iteration in range(X.shape[0] // params['batch_size']):
+        for iteration in range(X.shape[0]):
+            start = time.time()
+
             # Fetch batch
-            take = iteration * params['batch_size']
-            batch_index = X_index[ take:take + params['batch_size'] ]
-            X_batch = X[ batch_index , : ]
+            # take = iteration * params['batch_size']
+            # batch_index = X_index[ take:take + params['batch_size'] ]
+            # X_batch = X[ batch_index , : ]
 
-            X_batch = process_batch(X_batch, params)
+            batch_index = X_index[ iteration:iteration+1 ]
+            current_batch = X[ batch_index , : ]
+            current_batch = process_batch(current_batch, params)
+            # for sub_iteration in range(X_batch.shape[0] // params['batch_size']):
+            #     take = sub_iteration * params['batch_size']
+            #     mini_batch = X_batch[ take:take + params['batch_size'] ]
+            #
+            #     current_loss = train_on_batch(mini_batch)
 
-            current_loss = train_on_batch(X_batch)
+            current_loss = train_on_batch(current_batch)
 
-        # At the end of an epoch check Validation data
-        V_batch = V[ np.random.choice(V.shape[0], params['val_batch_size'], replace = False) , : ]
-        V_batch = process_batch(V_batch, params)
-        validation_loss = loss(X_val, model(X_val))
+            if iteration % 50 == 0:
+                v_sample = np.random.choice(V.shape[0])
+                V_batch = V[ v_sample:v_sample+1 , : ]
+                V_batch = process_batch(V_batch, params)
+                validation_loss = loss(V_batch, model(V_batch))
 
-        print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-            epoch, current_loss.numpy(), validation_loss.numpy(), round(time.time()-start, 2)))
+            # print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
+            print('{}.{}   \tTraining Loss: {}   \tLast Validation Loss: {}   \tTime: {}ss'.format(
+                epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
 
     print('\nTraining complete.\n')
 
     model.save('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name']))
     print('Model saved at:\n{}'.format('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name'])))
-    
+
     return None
 
 
