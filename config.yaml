@@ -6,14 +6,13 @@ gan: False
 # MODEL HYPERPARAMETERS
 seed: 123
 val_test_ratio: [0.06, 0.06]
-n_epochs: 5
-batch_size: 1
-val_batch_size: 2
+n_epochs: 1
+batch_size: 64
 learning_rate: 0.0001
 shuffle: True
 
-len_input: 250
-encoder_lstm_units: 250
+len_input: 150
+encoder_lstm_units: 200
 
 kernel_size: 3
 conv_filters: [8, 16]
