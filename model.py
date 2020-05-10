@@ -50,7 +50,7 @@ def build(params):
         Concatenate, LSTM, TimeDistributed, Dense
     )
 
-    # ENCODER
+    ## ENCODER
     encoder_input = Input((params['len_input'], 1))
 
     # LSTM block
@@ -72,7 +72,7 @@ def build(params):
 
     concatenation = Concatenate(axis = -1)([output_lstm, conv_2])
 
-    # DECODER
+    ## DECODER
     decoder_lstm = LSTM(params['len_input'], return_sequences = True)(concatenation)
     decoder_dense = TimeDistributed(Dense(params['decoder_dense_units'], activation = params['decoder_dense_activation']))(decoder_lstm)
     decoder_output = TimeDistributed(Dense(1, activation = params['decoder_output_activation']))(decoder_dense)

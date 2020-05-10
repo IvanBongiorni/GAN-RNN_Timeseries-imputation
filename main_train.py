@@ -13,7 +13,7 @@ import os
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
 # 3 = INFO, WARNING, and ERROR messages are not printed
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from pdb import set_trace as BP
 

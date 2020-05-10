@@ -31,8 +31,6 @@ def process_batch(batch, params):
     Apply artificial deterioration.
     Process to RNN format ('sliding window' to input series) and pack into final array.
     Fill NaN's 'with placeholder_value'.
-
-    EXPLAIN THE SUB-FETCHING OF
     '''
     import numpy as np
     import deterioration, tools  # local modules
@@ -53,8 +51,19 @@ def process_batch(batch, params):
 
 
 def train(model, X, V, params):
+    '''
+    Trains 'Vanilla' Seq2seq model.
+    To facilitate training, each time series (dataset row) is loaded and processed to a 
+    2D array for RNNs, then a batch of size params['batch_size'] is sampled randomly from it.
+    This trick doesn't train the model on all dataset on a single epoch, but allows it to be
+    fed with data from all Train set in reasonable amounts of time.
+    Acutal training step is under a @tf.funcion decorator; this reduced the whole train 
+    step to a tensorflow op, to speed up training.
+    History vectors for Training and Validation loss are pickled to /saved_models/ folder.
+    '''
     import time
     import numpy as np
+    import tensorflow as tf
 
     X_index = np.array(range(X.shape[0]))  # index X for faster fetch batch and shuffle
 
@@ -70,41 +79,37 @@ def train(model, X, V, params):
         return current_loss
 
     ## Training session starts
+    train_loss_history = []
+    val_loss_history = []
 
     for epoch in range(params['n_epochs']):
 
+        # Shuffle data by shuffling row index
         if params['shuffle']:
             X_index = X_index[ np.random.choice(len(X_index), len(X_index), replace = False) ]
 
-        # for iteration in range(X.shape[0] // params['batch_size']):
         for iteration in range(X.shape[0]):
             start = time.time()
 
-            # Fetch batch
-            # take = iteration * params['batch_size']
-            # batch_index = X_index[ take:take + params['batch_size'] ]
-            # X_batch = X[ batch_index , : ]
-
+            # fetch batch and train
             batch_index = X_index[ iteration:iteration+1 ]
             current_batch = X[ batch_index , : ]
             current_batch = process_batch(current_batch, params)
-            # for sub_iteration in range(X_batch.shape[0] // params['batch_size']):
-            #     take = sub_iteration * params['batch_size']
-            #     mini_batch = X_batch[ take:take + params['batch_size'] ]
-            #
-            #     current_loss = train_on_batch(mini_batch)
 
             current_loss = train_on_batch(current_batch)
 
+            # Save and print progress each 50 training steps
             if iteration % 50 == 0:
                 v_sample = np.random.choice(V.shape[0])
                 V_batch = V[ v_sample:v_sample+1 , : ]
                 V_batch = process_batch(V_batch, params)
                 validation_loss = loss(V_batch, model(V_batch))
 
-            # print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-            print('{}.{}   \tTraining Loss: {}   \tLast Validation Loss: {}   \tTime: {}ss'.format(
-                epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
+                train_loss_history.append(current_loss)
+                val_loss_history.append(validation_loss)
+
+                print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
+                    epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
 
     print('\nTraining complete.\n')
 

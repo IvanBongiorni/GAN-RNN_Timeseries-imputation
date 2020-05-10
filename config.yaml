@@ -1,12 +1,12 @@
 # MAIN
-model_name: 'model_00'
+model_name: 'vanilla_seq2seq_00'
 gan: False
 
 
 # MODEL HYPERPARAMETERS
 seed: 123
 val_test_ratio: [0.06, 0.06]
-n_epochs: 1
+n_epochs: 5
 batch_size: 64
 learning_rate: 0.0001
 shuffle: True
