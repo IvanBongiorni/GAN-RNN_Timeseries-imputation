@@ -1,12 +1,15 @@
 # GAN-RNN_Timeseries-imputation
 
-## WORK IN PROGRESS
+Author: Ivan Bongiorni
 
-The goal of this project is the implementation of multiple configurations of a Recurrent Convolutional Seq2seq model for the imputation of time series data. Three implementations are provided:
+
+## Description
+
+The goal of this project is the implementation of multiple configurations of a **Recurrent Convolutional Seq2seq** neural network for the imputation of time series data. Three implementations are provided:
 
 0. A "Vanilla" seq2seq model.
 0. A GAN (Generative Adversarial Network), where an Imputer is trained to fool an adversarial Network that tries to distinguish real and fake (imputed) time series.
-0. A partially adversarial model, in which the both Loss structure of previous models are comined in one: an Imputer model must reduce true error Loss, while at the same time try to fool a Discriminator.
+0. A partially adversarial model, in which both Loss structures of previous models are combined in one: an Imputer model must reduce true error Loss, while at the same time try to fool a Discriminator.
 
 Their performance the models and their ensembles is then compared, together with simpler imputation methods for comparison.
 
@@ -26,9 +29,9 @@ Models are Implemented in TensorFlow 2 and trained on the [Wikipedia Web Traffic
 - `impute.py`: final script, to be called in order to produce imputed data (for raw time series that contain NaN's) and export them for future projects.
 
 ### Notebooks
-- GAN_vs_others.ipynb
-- data_scaling_exploration.ipynb
-- nan_exploration.ipynb
+- GAN_vs_others.ipynb  # to be renamed: `performance_comparison.ipynb`
+- `data_scaling_exploration.ipynb`: contains visualizations of the scaling function I employed in data preprocessing phase.
+- `nan_exploration.ipynb`: contains a study of the distribution of NaN's in the raw dataset, that lead to the development of the deterioration function.
 
 
 ## Modules reuired
