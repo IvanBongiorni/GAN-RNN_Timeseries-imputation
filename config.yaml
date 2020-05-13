@@ -12,7 +12,6 @@ learning_rate: 0.0001
 shuffle: True
 
 len_input: 150
-encoder_lstm_units: 200
 
 kernel_size: 3
 conv_filters: [8, 16]
