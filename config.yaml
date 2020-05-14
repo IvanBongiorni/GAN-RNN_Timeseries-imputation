@@ -1,12 +1,13 @@
 # MAIN
 model_name: 'vanilla_seq2seq_00'
 gan: False
+check_test_performance: True  # After training, load Test data and check test loss
 
 
 # MODEL HYPERPARAMETERS
 seed: 123
 val_test_ratio: [0.06, 0.06]
-n_epochs: 5
+n_epochs: 3
 batch_size: 64
 learning_rate: 0.0001
 shuffle: True
@@ -20,9 +21,10 @@ conv_initializer: 'he_normal'
 use_batchnorm: True
 conv_dropout: 0.1
 
-decoder_dense_units: 100
+decoder_dense_units: 50
 decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
+decoder_dense_initializer: 'he_normal'
 decoder_dense_dropout: 0.1
 
 
