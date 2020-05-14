@@ -36,28 +36,35 @@ def process_batch(batch, params):
     import deterioration, tools  # local modules
 
     batch = [ np.isfinite(batch[ i , : ]) for i in range(batch.shape[0]) ]
-    batch = [ deterioration.apply(series, params) for series in batch ]
-    batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in batch ]
-    batch = np.concatenate(batch)
-    batch[ np.isnan(batch) ] = params['placeholder_value']
 
-    # Subsample mini batch to allow faster training and higher stochasticity of training
-    batch = batch[ np.random.choice(batch.shape[0], params['batch_size'], replace = False) , : ]
+    deteriorated = [ deterioration.apply(series, params) for series in batch ]
+
+    batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in batch ]
+    deteriorated = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in deteriorated ]
+    batch = np.concatenate(batch)
+    deteriorated = np.concatenate(deteriorated)
+
+    deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
+
+    sample = np.random.choice(batch.shape[0], params['batch_size'], replace = False)
+    batch = batch[ sample , : ]
+    deteriorated = deteriorated[ sample , : ]
 
     # ANN requires shape: ( n obs , len input , 1 )
     batch = np.expand_dims(batch, axis = -1)
+    deteriorated = np.expand_dims(deteriorated, axis = -1)
 
-    return batch
+    return batch, deteriorated
 
 
 def train(model, X, V, params):
     '''
     Trains 'Vanilla' Seq2seq model.
-    To facilitate training, each time series (dataset row) is loaded and processed to a 
+    To facilitate training, each time series (dataset row) is loaded and processed to a
     2D array for RNNs, then a batch of size params['batch_size'] is sampled randomly from it.
     This trick doesn't train the model on all dataset on a single epoch, but allows it to be
     fed with data from all Train set in reasonable amounts of time.
-    Acutal training step is under a @tf.funcion decorator; this reduced the whole train 
+    Acutal training step is under a @tf.funcion decorator; this reduced the whole train
     step to a tensorflow op, to speed up training.
     History vectors for Training and Validation loss are pickled to /saved_models/ folder.
     '''
@@ -65,15 +72,13 @@ def train(model, X, V, params):
     import numpy as np
     import tensorflow as tf
 
-    X_index = np.array(range(X.shape[0]))  # index X for faster fetch batch and shuffle
-
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     loss = tf.keras.losses.MeanAbsoluteError()
 
     @tf.function
-    def train_on_batch(batch):
+    def train_on_batch(batch, deteriorated):
         with tf.GradientTape() as tape:
-            current_loss = loss(batch, model(batch))
+            current_loss = loss(batch, model(deteriorated))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
@@ -86,24 +91,26 @@ def train(model, X, V, params):
 
         # Shuffle data by shuffling row index
         if params['shuffle']:
-            X_index = X_index[ np.random.choice(len(X_index), len(X_index), replace = False) ]
+            X_index = np.random.choice(X.shape[0], X.shape[0], replace = False)
 
         for iteration in range(X.shape[0]):
             start = time.time()
 
             # fetch batch and train
             batch_index = X_index[ iteration:iteration+1 ]
-            current_batch = X[ batch_index , : ]
-            current_batch = process_batch(current_batch, params)
+            batch = X[ batch_index , : ]
+            batch, deteriorated = process_batch(batch, params)
 
-            current_loss = train_on_batch(current_batch)
+            current_loss = train_on_batch(batch, deteriorated)
 
             # Save and print progress each 50 training steps
             if iteration % 50 == 0:
+                del batch, deteriorated
                 v_sample = np.random.choice(V.shape[0])
-                V_batch = V[ v_sample:v_sample+1 , : ]
-                V_batch = process_batch(V_batch, params)
-                validation_loss = loss(V_batch, model(V_batch))
+
+                batch = V[ v_sample:v_sample+1 , : ]
+                batch, deteriorated = process_batch(batch, params)
+                validation_loss = loss(batch, model(deteriorated))
 
                 #train_loss_history.append(current_loss)
                 #val_loss_history.append(validation_loss)
