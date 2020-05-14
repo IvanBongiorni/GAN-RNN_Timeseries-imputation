@@ -31,18 +31,22 @@ def build(params):
     encoder_input = Input((params['len_input'], 1))
 
     # LSTM block
-    encoder_lstm = LSTM(params['len_input'])(encoder_input)
+    encoder_lstm = LSTM(units = params['len_input'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
     # Conv block
-    conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
+    conv_1 = Conv1D(filters = params['conv_filters'][0],
+                    kernel_size = params['kernel_size'],
+                    activation = params['conv_activation'],
+                    kernel_initializer = params['conv_initializer'],
                     padding = 'same')(encoder_input)
     if params['use_batchnorm']:
         conv_1 = BatchNormalization()(conv_1)
 
-    conv_2 = Conv1D(filters = params['conv_filters'][1], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
+    conv_2 = Conv1D(filters = params['conv_filters'][1],
+                    kernel_size = params['kernel_size'],
+                    activation = params['conv_activation'],
+                    kernel_initializer = params['conv_initializer'],
                     padding = 'same')(conv_1)
     if params['use_batchnorm']:
         conv_2 = BatchNormalization()(conv_2)
@@ -51,8 +55,16 @@ def build(params):
 
     ## DECODER
     decoder_lstm = LSTM(params['len_input'], return_sequences = True)(concatenation)
-    decoder_dense = TimeDistributed(Dense(params['decoder_dense_units'], activation = params['decoder_dense_activation']))(decoder_lstm)
-    decoder_output = TimeDistributed(Dense(1, activation = params['decoder_output_activation']))(decoder_dense)
+    decoder_dense = TimeDistributed(
+        Dense(params['decoder_dense_units'],
+              activation = params['decoder_dense_activation'],
+              kernel_initializer = params['decoder_dense_initializer'])
+        )(decoder_lstm)
+    decoder_output = TimeDistributed(
+        Dense(units = 1,
+              activation = params['decoder_output_activation'],
+              kernel_initializer = params['decoder_dense_initializer'])
+        )(decoder_dense)
 
 
     model = Model(inputs = [encoder_input], outputs = [decoder_output])

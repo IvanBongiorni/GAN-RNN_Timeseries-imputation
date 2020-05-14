@@ -79,8 +79,8 @@ def train(model, X, V, params):
         return current_loss
 
     ## Training session starts
-    train_loss_history = []
-    val_loss_history = []
+    #train_loss_history = []
+    #val_loss_history = []
 
     for epoch in range(params['n_epochs']):
 
@@ -105,8 +105,8 @@ def train(model, X, V, params):
                 V_batch = process_batch(V_batch, params)
                 validation_loss = loss(V_batch, model(V_batch))
 
-                train_loss_history.append(current_loss)
-                val_loss_history.append(validation_loss)
+                #train_loss_history.append(current_loss)
+                #val_loss_history.append(validation_loss)
 
                 print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
                     epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
