@@ -8,11 +8,11 @@ Imports processed data, loads config params, runs training pipeline:
 builds model (either vanilla or GAN) and trains it, checks loss on test data.
 """
 
-import os
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
 # 3 = INFO, WARNING, and ERROR messages are not printed
+import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from pdb import set_trace as BP
@@ -30,6 +30,9 @@ if gpus:
     except RuntimeError as e:
         # Memory growth must be set before GPUs have been initialized
         print(e)
+
+# To see list of allocated tensors in case of OOM
+tf.compat.v1.RunOptions(report_tensor_allocations_upon_oom = True)
 
 
 def train_main():
@@ -68,8 +71,9 @@ def train_main():
 
     T = np.load( os.getcwd() + '/data_processed/X_test.npy' )
 
-    test_loss = train.chech_performance_on_test_data(Imputer, T)
-    print('Test Loss: {}'.format(test_loss))
+    if params['check_test_performance']:
+        test_loss = train.chech_performance_on_test_data(Imputer, T)
+        print('\nChecking performance on Test data')
 
     return None
 
