@@ -45,6 +45,8 @@ def train_main():
 
     print('\nStart Training Pipeline.\n')
 
+    ## TODO: SUBSTITUTE LOADING DATASET IN RAM WITH BUFFERING USING tf.data
+
     print('Loading Train and Validation data and configuration parameters:')
     params = yaml.load( open(os.getcwd() + '/config.yaml'), yaml.Loader )
     X = np.load( os.getcwd() + '/data_processed/X_train.npy' )
@@ -69,10 +71,8 @@ def train_main():
     print('\nPerformance check on Test data:')
     del X, V  # free memory
 
-    T = np.load( os.getcwd() + '/data_processed/X_test.npy' )
-
     if params['check_test_performance']:
-        test_loss = train.chech_performance_on_test_data(Imputer, T)
+        test_loss = train.chech_performance_on_test_data(Imputer)
         print('\nChecking performance on Test data')
 
     return None
