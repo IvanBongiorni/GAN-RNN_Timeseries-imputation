@@ -36,8 +36,13 @@ Notebooks and explanations:
 - `data_scaling_exploration.ipynb`: contains visualizations of the scaling function I employed in data preprocessing phase.
 - `nan_exploration.ipynb`: contains a study of the distribution of NaN's in the raw dataset, that lead to the development of the deterioration function.
 
+Folders:
+- `/data_raw`: this directory is supposed to contain the raw Wikipedia Web Traffic Time Series Forecasting dataset, as it is downloaded (and unzipped) from Kaggle.
+- `/data_processed`: contains the outcome of preprocesing pipeline, launched from `main_processing.py`.
+- `/saved_model`: where all saved models are saved at the end of training pipepine. Model names can be changed in `config.yaml`. In case a GAN is trained and parameter 'save_discriminator' is set to `True`, the discriminator's name will be composed as `[model_name]_discriminator`.
 
-## Modules reuired
+
+## Modules required
 
 ```
 langdetect==1.0.8
