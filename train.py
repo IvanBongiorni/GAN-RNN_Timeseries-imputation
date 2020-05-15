@@ -44,6 +44,8 @@ def process_batch(batch, params):
     batch = np.concatenate(batch)
     deteriorated = np.concatenate(deteriorated)
 
+     ## TODO: before sampling mini batches, remove rows in deteriorated that are all NaN's - otherwise training will get absurd
+
     deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
 
     sample = np.random.choice(batch.shape[0], params['batch_size'], replace = False)
