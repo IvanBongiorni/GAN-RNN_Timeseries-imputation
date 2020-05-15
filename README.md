@@ -1,4 +1,4 @@
-# GAN-RNN_Timeseries-imputation
+# Seq2seq GAN for the Imputation of Missing Values in Time Series Data
 
 Author: Ivan Bongiorni
 
