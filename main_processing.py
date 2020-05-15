@@ -122,27 +122,26 @@ def processing_main():
         print("\tSub-dataframe for language '{}' executed in {} ss.".format(
             language, round(time.time()-start, 2)))
 
-    print('Saving processed data as:')
-
+    print('Saving Training data.')
     X_train = np.concatenate(X_train)
     # Shuffle X_train only, before training
     shuffle = np.random.choice(X_train.shape[0], X_train.shape[0], replace = False)
     X_train = X_train[ shuffle , : ]
-    np.save(os.getcwd() + '/data_processed/X_train', X_train)
-    print('\tX_train:\t', X_train.shape)
+    for i in range(X_train.shape[0]):
+        np.save(os.getcwd() + '/data_processed/Training/X_{}'.format(str(i).zfill(6)), X_train)
 
+    print('Saving Validation data.')
     X_val = np.concatenate(X_val)
-    np.save(os.getcwd() + '/data_processed/X_val', X_val)
-    print('\tX_val:  \t', X_val.shape)
+    for i in range(X_val.shape[0]):
+        np.save(os.getcwd() + '/data_processed/Validation/V_{}'.format(str(i).zfill(6)), X_val)
 
+    print('Saving Test data.')
     X_test = np.concatenate(X_test)
-    np.save(os.getcwd() + '/data_processed/X_test', X_test)
-    print('\tX_test:   \t', X_test.shape)
+    for i in range(X_test.shape[0]):
+        np.save(os.getcwd() + '/data_processed/Test/T_{}'.format(str(i).zfill(6)), X_test)
 
     # Save scaling params to file
     yaml.dump(scaling_dict, open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'))
-
-    print('\nat the following directory:\n{}'.format(os.getcwd() + '/data_processed/'))
 
     print('\nPipeline executed in {} ss.\n'.format(round(time.time()-pipeline_start, 2)))
     return None
