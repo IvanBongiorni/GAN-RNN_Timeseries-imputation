@@ -128,17 +128,17 @@ def processing_main():
     shuffle = np.random.choice(X_train.shape[0], X_train.shape[0], replace = False)
     X_train = X_train[ shuffle , : ]
     for i in range(X_train.shape[0]):
-        np.save(os.getcwd() + '/data_processed/Training/X_{}'.format(str(i).zfill(6)), X_train)
+        np.save(os.getcwd() + '/data_processed/Training/X_{}'.format(str(i).zfill(6)), X_train[ i , : ])
 
     print('Saving Validation data.')
     X_val = np.concatenate(X_val)
     for i in range(X_val.shape[0]):
-        np.save(os.getcwd() + '/data_processed/Validation/V_{}'.format(str(i).zfill(6)), X_val)
+        np.save(os.getcwd() + '/data_processed/Validation/V_{}'.format(str(i).zfill(6)), X_val[ i , :])
 
     print('Saving Test data.')
     X_test = np.concatenate(X_test)
     for i in range(X_test.shape[0]):
-        np.save(os.getcwd() + '/data_processed/Test/T_{}'.format(str(i).zfill(6)), X_test)
+        np.save(os.getcwd() + '/data_processed/Test/T_{}'.format(str(i).zfill(6)), X_test[ i , : ])
 
     # Save scaling params to file
     yaml.dump(scaling_dict, open( os.getcwd() + '/data_processed/scaling_dict.yaml', 'w'))
