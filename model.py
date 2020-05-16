@@ -7,7 +7,7 @@ Model implementation.
 import tensorflow as tf
 
 
-def build(params):
+def build_vanilla_seq2seq(params):
     """
     Implements a seq2seq RNN with Convolutional self attention. It keeps a canonical
     Encoder-Decoder structure: an Embedding layers receives the sequence of chars and

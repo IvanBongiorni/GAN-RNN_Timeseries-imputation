@@ -24,27 +24,28 @@ import tools
 
 def process_batch(batch, params):
     '''
-    Process a mini batch for training, works for Train anv Validation data.
-    Steps:
-    Trim NaN's left (after processing pipeline, they should all be the right
-    ones). Trends too short already filtered in processing.py.
-    Apply artificial deterioration.
-    Process to RNN format ('sliding window' to input series) and pack into final array.
-    Fill NaN's 'with placeholder_value'.
+    Process a mini batch for training, works for Train anv Validation data:
+    - Trim NaN's left (after processing pipeline, they should all be the right ones). Trends too
+      short already filtered in processing.py.
+    - Make a copy of batch and apply artificial deterioration.
+    - Process real and deteriorated batches to RNN format ('sliding window' to input series).
+    - Remove rows that are all NaN to avoid sampling absurd training obs.
+    - Fill NaN's with 'placeholder_value'.
+    - Adjust dimensionality of arrays ( # obs. , input sequences , 1 ) to be fed into ANN.
     '''
     import numpy as np
     import deterioration, tools  # local modules
 
-    batch = [ np.isfinite(batch[ i , : ]) for i in range(batch.shape[0]) ]
+    batch = np.isfinite(batch)
 
-    deteriorated = [ deterioration.apply(series, params) for series in batch ]
+    deteriorated = deterioration.apply(batch, params)
 
-    batch = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in batch ]
-    deteriorated = [ tools.RNN_univariate_processing(series, len_input = params['len_input']) for series in deteriorated ]
-    batch = np.concatenate(batch)
-    deteriorated = np.concatenate(deteriorated)
+    batch = tools.RNN_univariate_processing(batch, len_input = params['len_input'])
+    deteriorated = tools.RNN_univariate_processing(deteriorated, len_input = params['len_input'])
 
-     ## TODO: before sampling mini batches, remove rows in deteriorated that are all NaN's - otherwise training will get absurd
+    mask = np.all(np.isnan(deteriorated), axis = 1)
+    deteriorated = deteriorated[ ~mask ]
+    batch = batch[ ~mask ]
 
     deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
 
@@ -59,7 +60,7 @@ def process_batch(batch, params):
     return batch, deteriorated
 
 
-def train(model, X, V, params):
+def train_vanilla_seq2seq(model, params):
     '''
     Trains 'Vanilla' Seq2seq model.
     To facilitate training, each time series (dataset row) is loaded and processed to a
@@ -74,6 +75,10 @@ def train(model, X, V, params):
     import numpy as np
     import tensorflow as tf
 
+    # Get list of all Training and Validation observations
+    X_files = np.array( os.listdir( os.getcwd() + '/data_processed/Training/' ) )
+    V_files = np.array( os.listdir( os.getcwd() + '/data_processed/Validation/' ) )
+
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     loss = tf.keras.losses.MeanAbsoluteError()
 
@@ -86,6 +91,7 @@ def train(model, X, V, params):
         return current_loss
 
     ## Training session starts
+
     #train_loss_history = []
     #val_loss_history = []
 
@@ -93,25 +99,22 @@ def train(model, X, V, params):
 
         # Shuffle data by shuffling row index
         if params['shuffle']:
-            X_index = np.random.choice(X.shape[0], X.shape[0], replace = False)
+            X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace = False) ]
 
-        for iteration in range(X.shape[0]):
+        for iteration in range(X_files.shape[0]):
             start = time.time()
 
-            # fetch batch and train
-            batch_index = X_index[ iteration:iteration+1 ]
-            batch = X[ batch_index , : ]
+            # fetch batch by filenames index and train
+            batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
             batch, deteriorated = process_batch(batch, params)
 
             current_loss = train_on_batch(batch, deteriorated)
 
             # Save and print progress each 50 training steps
             if iteration % 50 == 0:
-                del batch, deteriorated
-                v_sample = np.random.choice(V.shape[0])
-
-                batch = V[ v_sample:v_sample+1 , : ]
+                batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), V_files[ np.random.choice(len(V_files)) ]) )
                 batch, deteriorated = process_batch(batch, params)
+
                 validation_loss = loss(batch, model(deteriorated))
 
                 #train_loss_history.append(current_loss)
@@ -133,7 +136,11 @@ def train(model, X, V, params):
 ###    GAN TRAINING IS STILL A WORK IN PROGRESS - DO NOT TOUCH UNTIL VANILLA TRAINING IS READY
 ################################################################################################
 
-# def train_GAN(generator, discriminator, X, V, params):
+# def train_GAN():
+#     return None
+
+
+# def train_partial_GAN(generator, discriminator, X, V, params):
 #     import time
 #     import numpy as np
 #     from sklearn.utils import shuffle

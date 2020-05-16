@@ -8,17 +8,18 @@ Imports processed data, loads config params, runs training pipeline:
 builds model (either vanilla or GAN) and trains it, checks loss on test data.
 """
 
+import os
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
 # 3 = INFO, WARNING, and ERROR messages are not printed
-import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from pdb import set_trace as BP
 
 
-def train_main():
+def main():
+    ''' Wrapper of Training Pipeline. '''
     import os
     import yaml, pickle
     import numpy as np
@@ -27,10 +28,11 @@ def train_main():
     # local modules
     import model, train
 
-    print('Loading Train and Validation data and configuration parameters:')
+    print('Loading configuration parameters.')
     params = yaml.load( open(os.getcwd() + '/config.yaml'), yaml.Loader )
 
-    # Set GPU configurations
+    print('Setting GPU configurations.')
+    ### Sets GPU configurations
     if params['use_gpu']:
         # This prevents CuDNN 'Failed to get convolution algorithm' error
         gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -62,28 +64,37 @@ def train_main():
 
     print('\nStart Training Pipeline.\n')
 
-    X = np.load( os.getcwd() + '/data_processed/X_train.npy' )
-    V = np.load( os.getcwd() + '/data_processed/X_val.npy' )
-    print('Train set:      ', X.shape)
-    print('Validation set: ', V.shape, '\n')
-
-    print('\nModel instantiated as:\n')
-    if params['gan']:
-        Imputer, Discriminator = model.build_GAN(params)
-        Imputer.summary()
-        print('\nStart of adversarial training.\n')
-        train.train_GAN(Imputer, Discriminator, X, V, params)
-    else:
-        Imputer = model.build(params)
+    if params['model_type'] == 1:
+        print('\nVanilla Seq2seq model instantiated as:\n')
+        Imputer = model.build_vanilla_seq2seq(params)
         Imputer.summary()
         print('\nStart training.\n')
-        train.train(Imputer, X, V, params)
+        train.train_vanilla_seq2seq(Imputer, params)
+
+    elif params['model_type'] == 2:
+        print('\nGAN Seq2seq model instantiated as:\n')
+        Imputer, Discriminator = model.build_GAN(params)
+        Imputer.summary()
+        print('\nStart GAN training.\n')
+        train.train_GAN(Imputer, Discriminator, params)
+
+    elif params['model_type'] == 3:
+        print('\nPartially adversarial Seq2seq model instantiated as:\n')
+        Imputer, Discriminator = model.build_GAN(params)
+        Imputer.summary()
+        print('\nStart partially adversarial training.\n')
+        train.train_partial_GAN(Imputer, Discriminator, params)
+
+    else:
+        print("ERROR:\nIn config.yaml, from 'model_type' parameter, specify one of the following model architectures:")
+        print("'model_type': 1\tVanilla Seq2seq")
+        print("'model_type': 2\tGAN Seq2seq")
+        print("'model_type': 3\tSeq2seq with partially adversarial training")
+        quit()
 
     # Check performance on Test data
-    print('\nPerformance check on Test data:')
-    del X, V  # free memory
-
     if params['check_test_performance']:
+        print('\nPerformance check on Test data:')
         test_loss = train.chech_performance_on_test_data(Imputer)
         print('\nChecking performance on Test data')
 
@@ -91,4 +102,4 @@ def train_main():
 
 
 if __name__ == '__main__':
-    train_main()
+    main()
