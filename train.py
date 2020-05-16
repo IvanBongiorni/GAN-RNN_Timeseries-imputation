@@ -76,8 +76,15 @@ def train_vanilla_seq2seq(model, params):
     import tensorflow as tf
 
     # Get list of all Training and Validation observations
-    X_files = np.array( os.listdir( os.getcwd() + '/data_processed/Training/' ) )
-    V_files = np.array( os.listdir( os.getcwd() + '/data_processed/Validation/' ) )
+    X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
+    if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
+    if '.gitignore' in X_files: X_files.remove('.gitignore')
+    X_files = np.array(X_files)
+
+    V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
+    if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
+    if '.gitignore' in V_files: V_files.remove('.gitignore')
+    V_files = np.array(V_files)
 
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     loss = tf.keras.losses.MeanAbsoluteError()
