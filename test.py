@@ -5,11 +5,14 @@ Author: Ivan Bongiorni
 Performance check on Test data.
 
 This script is called from main_train.py after training is done and params['check_test_performance']
-from config.yaml is set to True. It loads the test set from /data_processed/ folder and returns
-a Loss value (MAE).
+from config.yaml is set to True.
 """
 
-def check_performance_on_test_data(model):
+def check(model):
+    '''
+    Loads Test observations from /data_processed/ folder, iterates model
+    prediction and return a Loss value (MAE) and some error statistics.
+    '''
     import os
     import time
     import numpy as np
@@ -41,5 +44,14 @@ def check_performance_on_test_data(model):
     final_loss = loss(T, P)
 
     print('\n\tFinal MAE Loss: {}'.format(final_loss.numpy()))
+
+    # return some error statistics here
+
+    #min
+    #25 perc
+    #mean
+    #median
+    #75 perc
+    #max
 
     return None
