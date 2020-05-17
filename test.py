@@ -8,10 +8,13 @@ This script is called from main_train.py after training is done and params['chec
 from config.yaml is set to True.
 """
 
-def check(model):
+def check(model, return_stats = False):
     '''
     Loads Test observations from /data_processed/ folder, iterates model
     prediction and return a Loss value (MAE) and some error statistics.
+
+    Argument `return_stats` is meant to be used only from Jupyter Notebooks
+    for more thorough visualization and analyses.
     '''
     import os
     import time
@@ -54,4 +57,22 @@ def check(model):
     #75 perc
     #max
 
-    return None
+    if return_stats:
+
+        plt.figure(figsize = (15, 7))
+        plt.hist(E, bins = 100)
+        plt.title('Test errors of model: {} (MAE)'.format(params['model_name']))
+        plt.show()
+
+        error_stats = {
+            'min': error_min,
+            '25_perc': error_25p,
+            'mean' error_mean,
+            'median': error_median,
+            '75_perc': error_75p,
+            'max' error_max
+            }
+        return error_stats
+
+    else:
+        return None
