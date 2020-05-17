@@ -65,22 +65,37 @@ def main():
     print('\nStart Training Pipeline.\n')
 
     if params['model_type'] == 1:
-        print('\nVanilla Seq2seq model instantiated as:\n')
-        Imputer = model.build_vanilla_seq2seq(params)
+        # If the model already exists load it, otherwise make a new one
+        if params['model_name']+'.h5' in os.listdir( os.getcwd() + '/saved_models/' ):
+            print('Loading existing model: {}.'.format(params['model_name']))
+            Imputer = tf.keras.models.load_model( os.getcwd() + '/saved_models/' + params['model_name'] + '.h5' )
+        else:
+            print('\nVanilla Seq2seq model instantiated as:\n')
+            Imputer = model.build_vanilla_seq2seq(params)
         Imputer.summary()
         print('\nStart training.\n')
         train.train_vanilla_seq2seq(Imputer, params)
 
     elif params['model_type'] == 2:
-        print('\nGAN Seq2seq model instantiated as:\n')
-        Imputer, Discriminator = model.build_GAN(params)
+        if params['model_name']+'.h5' in os.listdir( os.getcwd() + '/saved_models/' ):
+            print('Loading existing model: {}.'.format(params['model_name']))
+            Imputer = tf.keras.models.load_model( os.getcwd() + '/saved_models/' + params['model_name'] + '.h5' )
+            Discriminator = tf.keras.models.load_model( os.getcwd() + '/saved_models/' + params['model_name'] + '_discriminator.h5' )
+        else:
+            print('\nGAN Seq2seq model instantiated as:\n')
+            Imputer, Discriminator = model.build_GAN(params)
         Imputer.summary()
         print('\nStart GAN training.\n')
         train.train_GAN(Imputer, Discriminator, params)
 
     elif params['model_type'] == 3:
-        print('\nPartially adversarial Seq2seq model instantiated as:\n')
-        Imputer, Discriminator = model.build_GAN(params)
+        if params['model_name']+'.h5' in os.listdir( os.getcwd() + '/saved_models/' ):
+            print('Loading existing model: {}.'.format(params['model_name']))
+            Imputer = tf.keras.models.load_model( os.getcwd() + '/saved_models/' + params['model_name'] + '.h5' )
+            Discriminator = tf.keras.models.load_model( os.getcwd() + '/saved_models/' + params['model_name'] + '_discriminator.h5' )
+        else:
+            print('\nPartially adversarial Seq2seq model instantiated as:\n')
+            Imputer, Discriminator = model.build_GAN(params)
         Imputer.summary()
         print('\nStart partially adversarial training.\n')
         train.train_partial_GAN(Imputer, Discriminator, params)
@@ -95,7 +110,7 @@ def main():
     # Check performance on Test data
     if params['check_test_performance']:
         print('\nPerformance check on Test data:')
-        test_loss = train.chech_performance_on_test_data(Imputer)
+        test_loss = test.check(Imputer)
         print('\nChecking performance on Test data')
 
     return None

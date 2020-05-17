@@ -10,12 +10,10 @@ Implementation of two training function:
 """
 import os
 import time
-import pickle
 from pdb import set_trace as BP
 
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
 
 # local modules
 import deterioration
@@ -34,9 +32,9 @@ def process_batch(batch, params):
     - Adjust dimensionality of arrays ( # obs. , input sequences , 1 ) to be fed into ANN.
     '''
     import numpy as np
-    import deterioration, tools  # local modules
+    import deterioration, tools  # local imports
 
-    batch = np.isfinite(batch)
+    batch = np.isfinite(batch) # only right-trim NaN's remained. Others are already taken care of
 
     deteriorated = deterioration.apply(batch, params)
 
@@ -44,8 +42,8 @@ def process_batch(batch, params):
     deteriorated = tools.RNN_univariate_processing(deteriorated, len_input = params['len_input'])
 
     mask = np.all(np.isnan(deteriorated), axis = 1)
-    deteriorated = deteriorated[ ~mask ]
-    batch = batch[ ~mask ]
+    deteriorated = deteriorated[ ~mask , : ]
+    batch = batch[ ~mask , : ]
 
     deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
 
@@ -74,18 +72,6 @@ def train_vanilla_seq2seq(model, params):
     import time
     import numpy as np
     import tensorflow as tf
-
-    # Get list of all Training and Validation observations
-    X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
-    if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
-    if '.gitignore' in X_files: X_files.remove('.gitignore')
-    X_files = np.array(X_files)
-
-    V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
-    if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
-    if '.gitignore' in V_files: V_files.remove('.gitignore')
-    V_files = np.array(V_files)
-
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     loss = tf.keras.losses.MeanAbsoluteError()
 
@@ -104,9 +90,23 @@ def train_vanilla_seq2seq(model, params):
 
     for epoch in range(params['n_epochs']):
 
+        # Get list of all Training and Validation observations
+        X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
+        if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
+        if '.gitignore' in X_files: X_files.remove('.gitignore')
+        X_files = np.array(X_files)
+
+        V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
+        if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
+        if '.gitignore' in V_files: V_files.remove('.gitignore')
+        V_files = np.array(V_files)
+
+        # Sample subset from it
+        X_files = X_files[ np.random.choice(X_files.shape[0], size = params['train_size_per_epoch'], replace = False) ]
+
         # Shuffle data by shuffling row index
-        if params['shuffle']:
-            X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace = False) ]
+        # if params['shuffle']:
+        #     X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace = False) ]
 
         for iteration in range(X_files.shape[0]):
             start = time.time()
@@ -119,7 +119,12 @@ def train_vanilla_seq2seq(model, params):
 
             # Save and print progress each 50 training steps
             if iteration % 50 == 0:
-                batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), V_files[ np.random.choice(len(V_files)) ]) )
+
+                v_file = os.listdir( os.getcwd() + '/data_processed/Validation/' )
+                if 'readme_validation.md' in v_file: v_file.remove('readme_validation.md')
+                if '.gitignore' in v_file: v_file.remove('.gitignore')
+                v_file = np.random.choice(v_file)
+                batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
                 batch, deteriorated = process_batch(batch, params)
 
                 validation_loss = loss(batch, model(deteriorated))
