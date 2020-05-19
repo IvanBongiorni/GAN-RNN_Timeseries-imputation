@@ -38,8 +38,8 @@ Notebooks and explanations:
 
 Folders:
 - `/data_raw`: this directory is supposed to contain the raw Wikipedia Web Traffic Time Series Forecasting dataset, as it is downloaded (and unzipped) from Kaggle.
-- `/data_processed`: contains the outcome of preprocesing pipeline, launched from `main_processing.py`.
-- `/saved_model`: where all saved models are saved at the end of training pipepine. Model names can be changed in `config.yaml`. In case a GAN is trained and parameter 'save_discriminator' is set to `True`, the discriminator's name will be composed as `[model_name]_discriminator`.
+- `/data_processed`: contains the outcome of preprocesing pipeline, launched from `main_processing.py`. Contains three sub-directories for `/Train/`, `/Validation/` and `/Test/` observations.
+- `/saved_model`: where all saved models are saved at the end of training pipepine. Model names can be changed in `config.yaml`. In case a GAN is trained and config parameter `save_discriminator` is set to `True`, the Discriminator model will be saved as `[model_name]_discriminator`.
 
 
 ## Modules required
@@ -52,3 +52,7 @@ scikit-learn==0.22.2.post1
 scipy==1.4.1
 tensorflow==2.1.0
 ```
+
+## Hardware
+
+I trained this model on a fairly powerful machine: a System76 Adder WS laptop with 64 GB of RAM and an NVidia RTX 2070 GPU.
