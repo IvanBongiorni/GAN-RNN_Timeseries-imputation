@@ -10,17 +10,21 @@ from config.yaml is set to True.
 
 def check(model, return_stats = False):
     '''
-    Loads Test observations from /data_processed/ folder, iterates model
-    prediction and return a Loss value (MAE) and some error statistics.
+    Loads Test observations from /data_processed/Test/ directory, loads config params
+    and trained model. Iterates model prediction to return a final Loss value (MAE)
+    error statistics.
 
-    Argument `return_stats` is meant to be used only from Jupyter Notebooks
-    for more thorough visualization and analyses.
+    Argument `return_stats` is meant to be used from Jupyter Notebooks for more thorough
+    visualization and analyses, it plots a histogram of error distribution, and returns
+    a dictionary with error statistics. If set to False error statistics are simply print
+    to terminal.
     '''
     import os
     import time
     import numpy as np
     import pandas as pd
     import tensorflow as tf
+    from sklean.metrics import mean_absolute_error as MAE
 
     # Local
     import train   # process_batch required
@@ -40,25 +44,25 @@ def check(model, return_stats = False):
         t = train.process_batch( T[ i , : ] )
         p = model.predict(t)
         P.append(p)
+    ### TODO: CHECK THAT np.concatenate IS OK INSTEAD OF np.stack
     P = np.concatenate(P)
     print('Done in {}ss.'.format(round(time.time()-start, 2)))
 
     loss = tf.keras.losses.MeanAbsoluteError()
     final_loss = loss(T, P)
-
     print('\n\tFinal MAE Loss: {}'.format(final_loss.numpy()))
 
-    # return some error statistics here
+    errors = [ MAE( T[ i,:], P[i,:] ) for i in range(T.shape[0]) ]
 
-    #min
-    #25 perc
-    #mean
-    #median
-    #75 perc
-    #max
+    error_min = np.min(errors)
+    error_25p = np.percentile(errors, 25)
+    error_mean = np.mean(errors)
+    error_std = np.std(errors)
+    error_median = np.median(errors)
+    error_75p = np.percentile(errors, 75)
+    error_max = np.max(errors)
 
     if return_stats:
-
         plt.figure(figsize = (15, 7))
         plt.hist(E, bins = 100)
         plt.title('Test errors of model: {} (MAE)'.format(params['model_name']))
@@ -67,12 +71,21 @@ def check(model, return_stats = False):
         error_stats = {
             'min': error_min,
             '25_perc': error_25p,
-            'mean' error_mean,
+            'mean': error_mean,
+            'std': error_std,
             'median': error_median,
             '75_perc': error_75p,
             'max' error_max
             }
-        return error_stats
-
+        return P, errors, error_stats
     else:
+        print('\nError statistics:')
+        print('\tMean:', error_mean)
+        print('\tSt dev:', error_std, '\n')
+
+        print('\tMin:            ', error_min)
+        print('\t25th percentile:', error_25p)
+        print('\tMedian:         ', error_median)
+        print('\t75th percentile:', error_75p)
+        print('\tMax:', error_max)
         return None
