@@ -71,17 +71,11 @@ def build_vanilla_seq2seq(params):
     return model
 
 
-
-################################################################################################
-###    GAN TRAINING IS STILL A WORK IN PROGRESS - DO NOT TOUCH UNTIL VANILLA TRAINING IS READY
-################################################################################################
-
-
 def build_discriminator(params):
     """
     Discriminator is based on the Vanilla seq2seq architecture. They only differ by
     the last two layers, since this is a classifier and not a regressor.
-    Models are made as symmetric as possible to allow for balanced adversarial training.
+    Models are made as symmetric as possible to achieve balance in adversarial training.
     """
     from tensorflow.keras.models import Model
     from tensorflow.keras.layers import (
@@ -93,18 +87,22 @@ def build_discriminator(params):
     encoder_input = Input((params['len_input'], 1))
 
     # LSTM block
-    encoder_lstm = LSTM(params['len_input'])(encoder_input)
+    encoder_lstm = LSTM(units = params['len_input'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
     # Conv block
-    conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
+    conv_1 = Conv1D(filters = params['conv_filters'][0],
+                    kernel_size = params['kernel_size'],
+                    activation = params['conv_activation'],
+                    kernel_initializer = params['conv_initializer'],
                     padding = 'same')(encoder_input)
     if params['use_batchnorm']:
         conv_1 = BatchNormalization()(conv_1)
 
-    conv_2 = Conv1D(filters = params['conv_filters'][1], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], kernel_initializer = params['conv_initializer'],
+    conv_2 = Conv1D(filters = params['conv_filters'][1],
+                    kernel_size = params['kernel_size'],
+                    activation = params['conv_activation'],
+                    kernel_initializer = params['conv_initializer'],
                     padding = 'same')(conv_1)
     if params['use_batchnorm']:
         conv_2 = BatchNormalization()(conv_2)
@@ -113,12 +111,17 @@ def build_discriminator(params):
 
     ## DECODER
     decoder_lstm = LSTM(params['len_input'])(concatenation)
-    decoder_dense = Dense(params['decoder_dense_units'], activation = params['decoder_dense_activation'])(decoder_lstm)
-    decoder_output = Dense(1, activation = 'sigmoid')(decoder_dense)
+    decoder_dense = Dense(units = params['discriminator_dense_units'],
+                          activation = params['decoder_dense_activation'],
+                          kernel_initializer = params['decoder_dense_initializer'])
+                    )(decoder_lstm)
+    decoder_output = Dense(1,
+                           activation = 'sigmoid',
+                           kernel_initializer = params['decoder_dense_initializer']
+                     )(decoder_dense)
 
-
-    model = Model(inputs = [encoder_input], outputs = [decoder_output])
-    return model
+    Discriminator = Model(inputs = [encoder_input], outputs = [decoder_output])
+    return Discriminator
 
 
 def build_GAN(params):
@@ -126,6 +129,6 @@ def build_GAN(params):
     This is just a wrapper in case the model is trained as a GAN. It calls the vanilla
     seq2seq Generator, and build_discriminator() for the Discriminator model.
     '''
-    generator = build(params)
+    generator = build_vanilla_seq2seq(params)
     discriminator = build_discriminator(params)
     return generator, discriminator

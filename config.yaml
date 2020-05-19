@@ -39,7 +39,7 @@ decoder_dense_dropout: 0.1
 noise_dims: 50
 discriminator_lstm_units: 250
 
-discriminator_dense_units: 200
+discriminator_dense_units: 100
 discriminator_activation: 'elu'
 
 
