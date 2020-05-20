@@ -113,7 +113,7 @@ def build_discriminator(params):
     decoder_lstm = LSTM(params['len_input'])(concatenation)
     decoder_dense = Dense(units = params['discriminator_dense_units'],
                           activation = params['decoder_dense_activation'],
-                          kernel_initializer = params['decoder_dense_initializer'])
+                          kernel_initializer = params['decoder_dense_initializer']
                     )(decoder_lstm)
     decoder_output = Dense(1,
                            activation = 'sigmoid',
