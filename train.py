@@ -35,9 +35,10 @@ def process_batch(batch, params):
     import numpy as np
     import deterioration, tools  # local imports
 
-    batch = np.isfinite(batch) # only right-trim NaN's remained. Others are already taken care of
-
-    deteriorated = deterioration.apply(batch, params)
+    batch = batch[ np.isfinite(batch) ] # only right-trim NaN's. Others were removed in processing
+    
+    deteriorated = np.copy(batch)
+    deteriorated = deterioration.apply(deteriorated, params)
 
     batch = tools.RNN_univariate_processing(batch, len_input = params['len_input'])
     deteriorated = tools.RNN_univariate_processing(deteriorated, len_input = params['len_input'])
@@ -51,6 +52,8 @@ def process_batch(batch, params):
     sample = np.random.choice(batch.shape[0], params['batch_size'], replace = False)
     batch = batch[ sample , : ]
     deteriorated = deteriorated[ sample , : ]
+
+    BP()
 
     # ANN requires shape: ( n obs , len input , 1 )
     batch = np.expand_dims(batch, axis = -1)
