@@ -109,9 +109,8 @@ def main():
 
     # Check performance on Test data
     if params['check_test_performance']:
-        print('\nPerformance check on Test data:')
-        test_loss = test.check(Imputer)
         print('\nChecking performance on Test data')
+        test.run(Imputer)
 
     return None
 

@@ -4,9 +4,10 @@ Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
 
 MODEL TRAINING
 
-Implementation of two training function:
+Implementation of three training functions:
  - "Vanilla" seq2seq model
  - GAN seq2seq.
+ - Partially adversarial seq2seq
 """
 import os
 import time

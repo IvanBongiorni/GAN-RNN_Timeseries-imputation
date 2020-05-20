@@ -8,7 +8,7 @@ This script is called from main_train.py after training is done and params['chec
 from config.yaml is set to True.
 """
 
-def check(model, return_stats = False):
+def run(model, params, return_stats = False):
     '''
     Loads Test observations from /data_processed/Test/ directory, loads config params
     and trained model. Iterates model prediction to return a final Loss value (MAE)
