@@ -110,7 +110,7 @@ def main():
     # Check performance on Test data
     if params['check_test_performance']:
         print('\nChecking performance on Test data')
-        test.run(Imputer)
+        holdout.run_test(Imputer, params)
 
     return None
 
