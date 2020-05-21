@@ -1,6 +1,8 @@
 # Convolutional Recurrent Seq2seq GAN for the Imputation of Missing Values in Time Series Data
 
-<span style="color:red"> WORK IN PROGRESS. I'm currently testing the performance of the baseline seq2seq model </span>
+----
+
+# WORK IN PROGRESS. I'm currently testing the performance of the baseline seq2seq model and fixing deterioration function
 
 Author: Ivan Bongiorni
 
