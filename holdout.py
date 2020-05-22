@@ -38,26 +38,26 @@ def run_test(model, params, return_stats = False):
 
     print('\n\tStart iteration of model predictions...')
     start = time.time()
-    
+
     X = []  # processed trends array
     D = []  # deteriorated trends array
     P = []  # predictions array
-    
+
     # iterate processing and prediction
     for i in range(T.shape[0]):
         # get processed trend and its deteriorated version
-        x, d = train.process_batch(T[ i , : ], params)
+        x, d = train.process_series(T[ i , : ], params)
         X.append(x)
         D.append(d)
-        
+
         p = model.predict(x)
         P.append(p)
-    
+
     X = np.concatenate(X)
     D = np.concatenate(D)
     P = np.concatenate(P)
     print('\tDone in {}ss.'.format(round(time.time()-start, 2)))
-    
+
 #     BP()
 
     loss = tf.keras.losses.MeanAbsoluteError()

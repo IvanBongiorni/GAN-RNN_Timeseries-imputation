@@ -27,8 +27,12 @@ def process_series(series, params):
 
     series = series[ np.isfinite(series) ] # only right-trim NaN's. Others were removed in processing
     series = tools.RNN_univariate_processing(series, len_input = params['len_input'])
-    sample = np.random.choice(series.shape[0], params['batch_size'], replace = False)
-    series = series[ sample , : ]
+
+    try:
+        sample = np.random.choice(series.shape[0], params['batch_size'], replace = False)
+        series = series[ sample , : ]
+    except:
+        pass
 
     deteriorated = np.copy(series)
     deteriorated = deterioration.apply(deteriorated, params)
