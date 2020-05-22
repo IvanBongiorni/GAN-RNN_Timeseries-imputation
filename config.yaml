@@ -44,8 +44,15 @@ discriminator_activation: 'elu'
 
 
 # DETERIORATION PARAMETERS
-prob_noise: 0.75     # probability of noise
-exp_scale: 165.496   # variance of exponential distribution
-interval_ratio: [0.01, 0.4]
-prob_interval: 0.5
+# min_nan_ratio: 0.1
+# prob_noise: 0.75     # probability of noise
+exp_scale: 10.72     # variance of exponential distribution
+# interval_ratio: [0.01, 0.4]
+# prob_interval: 0.5
 placeholder_value: -0.1  # what value to be fed instead of NaN
+
+
+
+# ratio of total NaN's at each deterioration
+total_nan_range: [0.12, 0.25]
+prob_noise: 0.7 # probability of exp noise

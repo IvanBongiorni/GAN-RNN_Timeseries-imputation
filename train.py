@@ -21,45 +21,24 @@ import deterioration
 import tools
 
 
-def process_batch(batch, params):
-    '''
-    Process a mini batch for training, works for Train anv Validation data:
-    - Trim NaN's left (after processing pipeline, they should all be the right ones). Trends too
-      short already filtered in processing.py.
-    - Make a copy of batch and apply artificial deterioration.
-    - Process real and deteriorated batches to RNN format ('sliding window' to input series).
-    - Remove rows that are all NaN to avoid sampling absurd training obs.
-    - Fill NaN's with 'placeholder_value'.
-    - Adjust dimensionality of arrays ( # obs. , input sequences , 1 ) to be fed into ANN.
-    '''
+def process_series(series, params):
     import numpy as np
     import deterioration, tools  # local imports
 
-    batch = batch[ np.isfinite(batch) ] # only right-trim NaN's. Others were removed in processing
-    
-    deteriorated = np.copy(batch)
+    series = series[ np.isfinite(series) ] # only right-trim NaN's. Others were removed in processing
+    series = tools.RNN_univariate_processing(series, len_input = params['len_input'])
+    sample = np.random.choice(series.shape[0], params['batch_size'], replace = False)
+    series = series[ sample , : ]
+
+    deteriorated = np.copy(series)
     deteriorated = deterioration.apply(deteriorated, params)
-
-    batch = tools.RNN_univariate_processing(batch, len_input = params['len_input'])
-    deteriorated = tools.RNN_univariate_processing(deteriorated, len_input = params['len_input'])
-
-    mask = np.all(np.isnan(deteriorated), axis = 1)
-    deteriorated = deteriorated[ ~mask , : ]
-    batch = batch[ ~mask , : ]
-
     deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
 
-    sample = np.random.choice(batch.shape[0], params['batch_size'], replace = False)
-    batch = batch[ sample , : ]
-    deteriorated = deteriorated[ sample , : ]
-
-    BP()
-
     # ANN requires shape: ( n obs , len input , 1 )
-    batch = np.expand_dims(batch, axis = -1)
+    series = np.expand_dims(series, axis = -1)
     deteriorated = np.expand_dims(deteriorated, axis = -1)
 
-    return batch, deteriorated
+    return series, deteriorated
 
 
 def train_vanilla_seq2seq(model, params):
@@ -117,7 +96,7 @@ def train_vanilla_seq2seq(model, params):
 
             # fetch batch by filenames index and train
             batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            batch, deteriorated = process_batch(batch, params)
+            batch, deteriorated = process_series(batch, params)
 
             current_loss = train_on_batch(batch, deteriorated)
 
@@ -129,7 +108,7 @@ def train_vanilla_seq2seq(model, params):
                 if '.gitignore' in v_file: v_file.remove('.gitignore')
                 v_file = np.random.choice(v_file)
                 batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
-                batch, deteriorated = process_batch(batch, params)
+                batch, deteriorated = process_series(batch, params)
 
                 validation_loss = loss(batch, model(deteriorated))
 

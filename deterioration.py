@@ -6,50 +6,62 @@ Deterioration function, must be iterated one series at a time. Placeholder value
 from params dict will be fed in the training pipeline.
 """
 import numpy as np
-import scipy
 
 
-def _exponential_noise(x, exp_scale):
-    ''' Samples the number of NaN's in x from Exponential distribution;
-    determines their position in the trend; masks actual trend. '''
+def _exponential_noise(x, nan_number):
     import numpy as np
-
-    # determine number of NaN's and their position
-    nan_number = round(np.random.exponential(scale = exp_scale))
-    # nan_draw = np.random.choice([0, 1], size = len(x))
     nan_idx = np.random.randint(low = 0, high = len(x), size = nan_number)
-
     x[ nan_idx ] = np.nan
     return x
 
 
 def _blank_random_interval(x, min_size, max_size):
-    ''' Draws a blank interval size and its position. '''
-    import scipy
-    width = int(len(x) * np.random.uniform(min_size, max_size))
-    where = np.random.randint(low = 0, high = len(x)-width)
+    import numpy as np
+    width = np.random.randint(min_size, max_size)
+    where = np.random.randint(0, len(x)-width)
     x[ where:where+width ] = np.nan
     return x
 
 
-def apply(x, params):
+
+
+def apply(X, params):
     '''
-    Applies random artificial deteriorations. The first coin flip
-    determines application of random noise. The second determines
-    the addition of a blank interval. Else applies both.
+    Iterates apply_on_series() on all rows of input numpy 2D array.
+
+    Toss a coin to choose between two options:
+    1. Apply exponential noise: draw a number of NaN's to generate. If it's outside
+        the rage specified in config.yaml at 'total_nan_range', then apply the option 2.
+    2. Blank an interval of the series: sample width and position of an interval in
+        the series and turn all points within into NaN.
     '''
     import numpy as np
 
-    if np.random.choice([0, 1], p = [1-params['prob_noise'], params['prob_noise']]):
-        x = _exponential_noise(x, exp_scale = params['exp_scale'])
+    threshold_low = int( X.shape[1] * params['total_nan_range'][0] )
+    threshold_upp = int( X.shape[1] * params['total_nan_range'][1] )
 
-    elif np.random.choice([0, 1], p = [1-params['prob_interval'], params['prob_interval']]):
-        x = _blank_random_interval(x,
-                                  min_size = params['interval_ratio'][0],
-                                  max_size = params['interval_ratio'][1])
-    else:
-        x = _exponential_noise(x, exp_scale = params['exp_scale'])
-        x = _blank_random_interval(x,
-                                  min_size = params['interval_ratio'][0],
-                                  max_size = params['interval_ratio'][1])
-    return x
+    def apply_on_series(x):
+        if np.random.choice([0, 1], p = [1-params['prob_noise'], params['prob_noise']]):
+            nan_number = np.random.randint(low = threshold_low, high = threshold_upp)
+            nan_idx = np.random.randint(low = 0, high = len(x), size = nan_number)
+            x[ nan_idx ] = np.nan
+        else:
+            width = np.random.randint(threshold_low, threshold_upp)
+            where = np.random.randint(0, len(x)-width)
+            x[ where:where+width ] = np.nan
+        return x
+
+    X = np.apply_along_axis(apply_on_series, 1, X)
+    return X
+
+    # def apply_on_series(x):
+    #     if np.random.choice([0, 1], p = [1-params['prob_noise'], params['prob_noise']]):
+    #         tot_exp_nan = round(np.random.exponential(scale = params['exp_scale']))
+    #
+    #         if threshold_low <= tot_exp_nan <= threshold_upp:
+    #             x = _exponential_noise(x, tot_exp_nan)
+    #         else:
+    #             x = _blank_random_interval(x, threshold_low, threshold_upp)
+    #     else:
+    #         x = _blank_random_interval(x, threshold_low, threshold_upp)
+    #     return x
