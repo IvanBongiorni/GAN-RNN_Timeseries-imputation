@@ -26,7 +26,7 @@ def main():
     import tensorflow as tf
 
     # local modules
-    import model, train
+    import model, train, holdout
 
     print('Loading configuration parameters.')
     params = yaml.load( open(os.getcwd() + '/config.yaml'), yaml.Loader )
@@ -107,10 +107,10 @@ def main():
         print("'model_type': 3\tSeq2seq with partially adversarial training")
         quit()
 
-    # Check performance on Test data
-    if params['check_test_performance']:
-        print('\nChecking performance on Test data')
-        holdout.run_test(Imputer, params)
+    # Check performance on Validation data and Test, optionally
+    holdout.run_test(Imputer,
+                     params,
+                     check_test_performance = params['check_test_performance'])
 
     return None
 
