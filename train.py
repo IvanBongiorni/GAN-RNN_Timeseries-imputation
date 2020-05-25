@@ -133,11 +133,107 @@ def train_vanilla_seq2seq(model, params):
 
 
 ################################################################################################
-###    GAN TRAINING IS STILL A WORK IN PROGRESS - DO NOT TOUCH UNTIL VANILLA TRAINING IS READY
+###    GANs ARE A WORK IN PROGRESS - DEBUGGING IS GOING ON
 ################################################################################################
 
-# def train_GAN():
-#     return None
+def train_GAN(generator, discriminator, params):
+    '''
+    This function trains a pure Generative Adversarial Network.
+    The main differences between a canonical GAN (as formulated by Goodfellow [2014]) and the one
+    implemented here is that the generation (imputation) produced doesn't stem from pure Gaussian
+    noise, but from artificially deteriorated trends. A randomic and an 'epistemic' component
+    coexist therefore.
+    Discriminator's accuracy metrics at the bottom is expressed as the only fake-detecting accuracy.
+    '''
+    import time
+    import numpy as np
+    import tensorflow as tf
+
+    cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True) # this work for both G and D
+    generator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
+    discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
+
+    @tf.function
+    def generator_loss(discriminator_guess_fakes):
+        ''' The Generator takes just Discriminator's guess on its fake outputs '''
+        with tf.GrandientTape() as generator_tape:
+            generator_current_loss = cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
+        generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
+        generator_optimizer.apply_gradients(zip(generator_gradient, generator.trainable_variables))
+        return generator_current_loss
+
+    @tf.function
+    def train_discriminator(prediction_real, prediction_imputed):
+        with tf.GrandientTape() as discriminator_tape:
+            loss_real = cross_entropy(tf.ones_like(prediction_real), prediction_real)
+            loss_imputed = cross_entropy(tf.zeros_like(prediction_imputed), prediction_imputed)
+            discriminator_current_loss = loss_real + loss_imputed
+        dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
+        discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
+        return discriminator_current_loss
+
+
+    for epoch in range(params['n_epochs']):
+
+        # Get list of all Training and Validation observations
+        X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
+        if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
+        if '.gitignore' in X_files: X_files.remove('.gitignore')
+        X_files = np.array(X_files)
+
+        V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
+        if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
+        if '.gitignore' in V_files: V_files.remove('.gitignore')
+        V_files = np.array(V_files)
+
+        for iteration in range(X_files.shape[0]):
+            start = time.time()
+
+            # fetch batch by filenames index and train
+            batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
+            batch, deteriorated = process_series(batch, params)
+
+            # Generator imputes and Discriminator tries to guess the fakes
+            generator_imputation = generator(deteriorated)
+            discriminator_guess_fakes = discriminator(generator_imputation)
+
+            # Load another series of real observations ( this block is a subset of process_series() )
+            real_example = np.random.choice( np.delete(X_files, iteration) )
+            real_example = real_example[ np.isfinite(real_example) ] # only right-trim NaN's. Others were removed in processing
+            real_example = tools.RNN_univariate_processing(real_example, len_input = params['len_input'])
+            sample = np.random.choice(real_example.shape[0], size = np.min(real_example.shape[0], params['batch_size']), replace = False)
+            real_example = real_example[ sample , : ]
+            real_example = np.expand_dims(real_example, axis = -1)
+
+            # Discriminator tries to guess the real ones
+            discriminator_guess_reals = discriminator(real_example)
+
+            # Train Discriminator both its guesses (real and fakes)
+            discriminator_current_loss = train_discriminator(discriminator_guess_reals, discriminator_guess_fakes)
+
+            # Train Generator on Discriminator's performance
+            generator_current_loss = train_generator(discriminator_guess_fakes)
+
+            # Report progress
+            if iteration % 50 == 0:
+                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy: {}   \tTime: {}ss'.format(
+                    epoch, iteration,
+                    generator_current_loss,
+                    discriminator_current_loss,
+                    tf.keras.metrics.binary_accuracy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes),
+                    round(time.time()-start, 4)
+                ))
+
+    print('\nTraining complete.\n')
+
+    generator.save('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name']))
+    print('Generator saved at:\n{}'.format('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name'])))
+
+    if params['save_discriminator']:
+        discriminator.save('{}/saved_models/{}_discriminator.h5'.format(os.getcwd(), params['model_name']))
+        print('\nDiscriminator saved at:\n{}'.format('{}/saved_models/{}_discriminator.h5'.format(os.getcwd(), params['model_name'])))
+
+    return None
 
 
 # def train_partial_GAN(generator, discriminator, X, V, params):
