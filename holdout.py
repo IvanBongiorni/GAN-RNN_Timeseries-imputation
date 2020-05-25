@@ -107,9 +107,8 @@ def run_test(model, params, check_test_performance = False, return_stats = False
     import numpy as np
     import tensorflow as tf
     import matplotlib.pyplot as plt
-    from pdb import set_trace as BP
     import train  #local import
-
+    
     # Load test data
     print('\n\nCheck model performance on Validation data.')
 

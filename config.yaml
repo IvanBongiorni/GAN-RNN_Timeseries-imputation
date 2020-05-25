@@ -1,19 +1,20 @@
 # MAIN
-model_name: 'prova' #'vanilla_seq2seq_02'
+model_name: 'vanilla_seq2seq_00'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
 model_type: 1
-use_gpu: True
+use_gpu: False
 # After training, load Test data and check test loss
-check_test_performance: True
+check_test_performance: False
 
 
 # MODEL HYPERPARAMETERS
 seed: 123
 val_test_ratio: [0.06, 0.06]
-train_size_per_epoch: 50000
+# Use subset of Train data for each epoch - if None use all
+train_size_per_epoch: None #50000
 n_epochs: 1
 batch_size: 64
 learning_rate: 0.0001

@@ -88,8 +88,9 @@ def train_vanilla_seq2seq(model, params):
         if '.gitignore' in V_files: V_files.remove('.gitignore')
         V_files = np.array(V_files)
 
-        # Sample subset from it
-        X_files = X_files[ np.random.choice(X_files.shape[0], size = params['train_size_per_epoch'], replace = False) ]
+        # Sample subset from it if requested, otherwise use all data
+        #if params['train_size_per_epoch'] is not None:
+        #    X_files = X_files[ np.random.choice(X_files.shape[0], size = params['train_size_per_epoch'], replace = False) ]
 
         # Shuffle data by shuffling row index
         # if params['shuffle']:
