@@ -37,11 +37,10 @@ decoder_dense_dropout: 0.1
 
 
 # GAN HYPERPARAMETERS
-noise_dims: 50
-discriminator_lstm_units: 250
-
+save_discriminator: True
 discriminator_dense_units: 100
-discriminator_activation: 'elu'
+discriminator_dense_activation: 'elu'
+discriminator_dense_initializer = 'he_normal'
 
 
 # DETERIORATION PARAMETERS
