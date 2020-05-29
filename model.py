@@ -84,43 +84,43 @@ def build_discriminator(params):
     )
 
     ## ENCODER
-    encoder_input = Input((params['len_input'], 1))
+    D_encoder_input = Input((params['len_input'], 1))
 
     # LSTM block
-    encoder_lstm = LSTM(units = params['len_input'])(encoder_input)
-    output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
+    D_encoder_lstm = LSTM(units = params['len_input'])(D_encoder_input)
+    D_output_lstm = RepeatVector(params['len_input'])(D_encoder_lstm)
 
     # Conv block
-    conv_1 = Conv1D(filters = params['conv_filters'][0],
-                    kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'],
-                    kernel_initializer = params['conv_initializer'],
-                    padding = 'same')(encoder_input)
+    D_conv_1 = Conv1D(filters = params['conv_filters'][0],
+                      kernel_size = params['kernel_size'],
+                      activation = params['conv_activation'],
+                      kernel_initializer = params['conv_initializer'],
+                      padding = 'same')(D_encoder_input)
     if params['use_batchnorm']:
-        conv_1 = BatchNormalization()(conv_1)
+        D_conv_1 = BatchNormalization()(D_conv_1)
 
-    conv_2 = Conv1D(filters = params['conv_filters'][1],
-                    kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'],
-                    kernel_initializer = params['conv_initializer'],
-                    padding = 'same')(conv_1)
+    D_conv_2 = Conv1D(filters = params['conv_filters'][1],
+                      kernel_size = params['kernel_size'],
+                      activation = params['conv_activation'],
+                      kernel_initializer = params['conv_initializer'],
+                      padding = 'same')(D_conv_1)
     if params['use_batchnorm']:
-        conv_2 = BatchNormalization()(conv_2)
+        D_conv_2 = BatchNormalization()(D_conv_2)
 
-    concatenation = Concatenate(axis = -1)([output_lstm, conv_2])
+    D_concatenation = Concatenate(axis = -1)([D_output_lstm, D_conv_2])
 
     ## DECODER
-    decoder_lstm = LSTM(params['len_input'])(concatenation)
-    decoder_dense = Dense(units = params['discriminator_dense_units'],
-                          activation = params['decoder_dense_activation'],
-                          kernel_initializer = params['decoder_dense_initializer']
-                    )(decoder_lstm)
-    decoder_output = Dense(1,
-                           activation = 'sigmoid',
-                           kernel_initializer = params['decoder_dense_initializer']
-                     )(decoder_dense)
+    D_decoder_lstm = LSTM(params['len_input'])(D_concatenation)
+    D_decoder_dense = Dense(units = params['discriminator_dense_units'],
+                            activation = params['decoder_dense_activation'],
+                            kernel_initializer = params['decoder_dense_initializer']
+                      )(D_decoder_lstm)
+    D_decoder_output = Dense(1,
+                             activation = 'sigmoid',
+                             kernel_initializer = params['decoder_dense_initializer']
+                     )(D_decoder_dense)
 
-    Discriminator = Model(inputs = [encoder_input], outputs = [decoder_output])
+    Discriminator = Model(inputs = [D_encoder_input], outputs = [D_decoder_output])
     return Discriminator
 
 
