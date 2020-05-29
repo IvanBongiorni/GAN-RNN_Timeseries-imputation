@@ -1,10 +1,10 @@
 # MAIN
-model_name: 'vanilla_seq2seq_00'
+model_name: 'gan_00'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
-model_type: 1
+model_type: 2
 use_gpu: False
 # After training, load Test data and check test loss
 check_test_performance: False
