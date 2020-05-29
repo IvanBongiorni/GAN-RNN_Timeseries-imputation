@@ -84,7 +84,10 @@ def main():
         else:
             print('\nGAN Seq2seq model instantiated as:\n')
             Imputer, Discriminator = model.build_GAN(params)
+        print('\nGenerator:\n')
         Imputer.summary()
+        print('\n\nDiscriminator:\n')
+        Discriminator.summary()
         print('\nStart GAN training.\n')
         train.train_GAN(Imputer, Discriminator, params)
 
@@ -96,7 +99,10 @@ def main():
         else:
             print('\nPartially adversarial Seq2seq model instantiated as:\n')
             Imputer, Discriminator = model.build_GAN(params)
+        print('\nGenerator:\n')
         Imputer.summary()
+        print('\nDiscriminator:\n')
+        Discriminator.summary()
         print('\nStart partially adversarial training.\n')
         train.train_partial_GAN(Imputer, Discriminator, params)
 

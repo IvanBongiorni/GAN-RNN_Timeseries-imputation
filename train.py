@@ -27,13 +27,8 @@ def process_series(series, params):
 
     series = series[ np.isfinite(series) ] # only right-trim NaN's. Others were removed in processing
     series = tools.RNN_univariate_processing(series, len_input = params['len_input'])
-
-    try:
-        sample = np.random.choice(series.shape[0], params['batch_size'], replace = False)
-        series = series[ sample , : ]
-    except:
-        pass
-
+    sample = np.random.choice(series.shape[0], size = np.min([series.shape[0], params['batch_size']]), replace = False)
+    series = series[ sample , : ]
     deteriorated = np.copy(series)
     deteriorated = deterioration.apply(deteriorated, params)
     deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
@@ -133,7 +128,7 @@ def train_vanilla_seq2seq(model, params):
 
 
 ################################################################################################
-###    GANs ARE A WORK IN PROGRESS - DEBUGGING IS GOING ON
+###    GANs ARE A WORK IN PROGRESS - DO NOT USE THIS CODE UNTIL READY
 ################################################################################################
 
 def train_GAN(generator, discriminator, params):
@@ -149,25 +144,39 @@ def train_GAN(generator, discriminator, params):
     import numpy as np
     import tensorflow as tf
 
-    cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True) # this work for both G and D
+    # from tensorflow.keras.losses import binary_crossentropy
+
+    cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True) # this work for both G and D
+
     generator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
 
     @tf.function
     def generator_loss(discriminator_guess_fakes):
+        return cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
+
+    @tf.function
+    def discriminator_loss(generator_imputation, real_example):
+        loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator(generator_imputation))
+        loss_real = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator(real_example))
+        return loss_fakes + loss_real
+
+    @tf.function
+    def generator_loss(discriminator_guess_fakes):
         ''' The Generator takes just Discriminator's guess on its fake outputs '''
-        with tf.GrandientTape() as generator_tape:
-            generator_current_loss = cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
+        with tf.GradientTape() as generator_tape:
+            generator_current_loss = generator_loss(discriminator_guess_fakes)
         generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
         generator_optimizer.apply_gradients(zip(generator_gradient, generator.trainable_variables))
         return generator_current_loss
 
     @tf.function
-    def train_discriminator(prediction_real, prediction_imputed):
-        with tf.GrandientTape() as discriminator_tape:
-            loss_real = cross_entropy(tf.ones_like(prediction_real), prediction_real)
-            loss_imputed = cross_entropy(tf.zeros_like(prediction_imputed), prediction_imputed)
-            discriminator_current_loss = loss_real + loss_imputed
+    # def train_discriminator(prediction_real, prediction_imputed):
+    def train_discriminator(discriminator_guess_reals, discriminator_guess_fakes):
+        with tf.GradientTape() as discriminator_tape:
+            loss_reals = discriminator_loss(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
+            loss_fakes = discriminator_loss(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
+            discriminator_current_loss = loss_reals + loss_fakes
         dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
         discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
         return discriminator_current_loss
@@ -193,26 +202,47 @@ def train_GAN(generator, discriminator, params):
             batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
             batch, deteriorated = process_series(batch, params)
 
-            # Generator imputes and Discriminator tries to guess the fakes
+            # Generator makes an imputation
             generator_imputation = generator(deteriorated)
+
+            # Discriminator tries to guess the fakes ones
             discriminator_guess_fakes = discriminator(generator_imputation)
 
             # Load another series of real observations ( this block is a subset of process_series() )
-            real_example = np.random.choice( np.delete(X_files, iteration) )
+            real_example = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(),  np.random.choice(np.delete(X_files, iteration))))
             real_example = real_example[ np.isfinite(real_example) ] # only right-trim NaN's. Others were removed in processing
             real_example = tools.RNN_univariate_processing(real_example, len_input = params['len_input'])
-            sample = np.random.choice(real_example.shape[0], size = np.min(real_example.shape[0], params['batch_size']), replace = False)
+            sample = np.random.choice(real_example.shape[0], size = np.min([real_example.shape[0], params['batch_size']]), replace = False)
             real_example = real_example[ sample , : ]
             real_example = np.expand_dims(real_example, axis = -1)
 
             # Discriminator tries to guess the real ones
             discriminator_guess_reals = discriminator(real_example)
 
+            # print('\n\nDENTRO ALLA GAN. CONTROLLA generator_imputation, discriminator_guess_fakes, discriminator_guess_reals\n')
+            # BP()
+
+
+            # with tf.GradientTape(), tf.GradientTape() as generator_tape, discriminator_tape:
+            #     generator_current_loss = binary_crossentropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
+            #
+            #     discriminator_loss_real = binary_crossentropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
+            #     discriminator_loss_fakes = binary_crossentropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
+            #     discriminator_current_loss = discriminator_loss_real + discriminator_loss_fakes
+            #
+            # generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
+            # generator_optimizer.apply_gradients(zip(generator_gradient, generator.trainable_variables))
+            #
+            # dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
+            # discriminator_optimizer.apply_gradients(zip(dicriminator_gradient, discriminator.trainable_variables))
+
+
             # Train Discriminator both its guesses (real and fakes)
             discriminator_current_loss = train_discriminator(discriminator_guess_reals, discriminator_guess_fakes)
 
             # Train Generator on Discriminator's performance
             generator_current_loss = train_generator(discriminator_guess_fakes)
+
 
             # Report progress
             if iteration % 50 == 0:
