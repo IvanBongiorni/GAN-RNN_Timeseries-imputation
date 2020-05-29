@@ -126,11 +126,6 @@ def train_vanilla_seq2seq(model, params):
     return None
 
 
-
-################################################################################################
-###    GANs ARE A WORK IN PROGRESS - DO NOT USE THIS CODE UNTIL READY
-################################################################################################
-
 def train_GAN(generator, discriminator, params):
     '''
     This function trains a pure Generative Adversarial Network.
@@ -234,6 +229,13 @@ def train_GAN(generator, discriminator, params):
         print('\nDiscriminator saved at:\n{}'.format('{}/saved_models/{}_discriminator.h5'.format(os.getcwd(), params['model_name'])))
 
     return None
+
+
+
+#######################################################################################################
+###    PARTIALLY ADVERSARIAL NETWORK is still a WORK IN PROGRESS - DO NOT USE THIS CODE UNTIL READY
+#######################################################################################################
+
 
 
 # def train_partial_GAN(generator, discriminator, X, V, params):
