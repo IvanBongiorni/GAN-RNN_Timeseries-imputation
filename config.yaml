@@ -1,11 +1,11 @@
 # MAIN
-model_name: 'gan_00'
+model_name: 'gan_01'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
 model_type: 2
-use_gpu: False
+use_gpu: True
 # After training, load Test data and check test loss
 check_test_performance: False
 
@@ -21,6 +21,8 @@ learning_rate: 0.0001
 # shuffle: True
 
 len_input: 128
+
+encoder_lstm_units: 50
 
 kernel_size: 3
 conv_filters: [8, 16]
@@ -38,7 +40,7 @@ decoder_dense_dropout: 0.1
 
 # GAN HYPERPARAMETERS
 save_discriminator: True
-discriminator_dense_units: 100
+discriminator_dense_units: 50
 discriminator_dense_activation: 'elu'
 discriminator_dense_initializer: 'he_normal'
 

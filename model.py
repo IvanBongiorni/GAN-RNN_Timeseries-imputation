@@ -24,103 +24,99 @@ def build_vanilla_seq2seq(params):
     from tensorflow.keras.models import Model
     from tensorflow.keras.layers import (
         Input, LSTM, RepeatVector, Conv1D, BatchNormalization,
-        Concatenate, LSTM, TimeDistributed, Dense
+        Concatenate, TimeDistributed, Dense
     )
 
     ## ENCODER
     encoder_input = Input((params['len_input'], 1))
 
     # LSTM block
-    encoder_lstm = LSTM(units = params['len_input'])(encoder_input)
+    encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
     # Conv block
-    conv_1 = Conv1D(filters = params['conv_filters'][0],
-                    kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'],
-                    kernel_initializer = params['conv_initializer'],
-                    padding = 'same')(encoder_input)
+    conv_1 = Conv1D(
+        filters = params['conv_filters'][0],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        kernel_initializer = params['conv_initializer'],
+        padding = 'same')(encoder_input)
     if params['use_batchnorm']:
         conv_1 = BatchNormalization()(conv_1)
-
-    conv_2 = Conv1D(filters = params['conv_filters'][1],
-                    kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'],
-                    kernel_initializer = params['conv_initializer'],
-                    padding = 'same')(conv_1)
+    conv_2 = Conv1D(
+        filters = params['conv_filters'][1],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        kernel_initializer = params['conv_initializer'],
+        padding = 'same')(conv_1)
     if params['use_batchnorm']:
         conv_2 = BatchNormalization()(conv_2)
 
-    concatenation = Concatenate(axis = -1)([output_lstm, conv_2])
+    # Concatenate LSTM and Conv Encoder outputs for Decoder LSTM layer
+    encoder_output = Concatenate(axis = -1)([output_lstm, conv_2])
 
-    ## DECODER
-    decoder_lstm = LSTM(params['len_input'], return_sequences = True)(concatenation)
-    decoder_dense = TimeDistributed(
-        Dense(params['decoder_dense_units'],
-              activation = params['decoder_dense_activation'],
-              kernel_initializer = params['decoder_dense_initializer'])
-        )(decoder_lstm)
+    decoder_lstm = LSTM(params['len_input'], return_sequences = True)(encoder_output)
     decoder_output = TimeDistributed(
-        Dense(units = 1,
-              activation = params['decoder_output_activation'],
-              kernel_initializer = params['decoder_dense_initializer'])
-        )(decoder_dense)
+        Dense(
+            units = 1,
+            activation = params['decoder_output_activation'],
+            kernel_initializer = params['decoder_dense_initializer'])
+        )(decoder_lstm)
 
+    seq2seq = Model(inputs = [encoder_input], outputs = [decoder_output])
 
-    model = Model(inputs = [encoder_input], outputs = [decoder_output])
-    return model
+    return seq2seq
 
 
 def build_discriminator(params):
     """
-    Discriminator is based on the Vanilla seq2seq architecture. They only differ by
-    the last two layers, since this is a classifier and not a regressor.
-    Models are made as symmetric as possible to achieve balance in adversarial training.
+    Discriminator is based on the Vanilla seq2seq architecture. The two Encoders (Recurrent
+    and Convolutional) are exactly the same. The Decoder is removed, and a Dense layer is
+    left instead, in order to perform binary classification.
     """
     from tensorflow.keras.models import Model
     from tensorflow.keras.layers import (
-        Input, LSTM, RepeatVector, Conv1D, BatchNormalization,
-        Concatenate, LSTM, TimeDistributed, Dense
+        Input, LSTM, Conv1D, BatchNormalization,
+        Concatenate, Flatten, Dense
     )
 
     ## ENCODER
-    D_encoder_input = Input((params['len_input'], 1))
+    encoder_input = Input((params['len_input'], 1))
 
     # LSTM block
-    D_encoder_lstm = LSTM(units = params['len_input'])(D_encoder_input)
-    D_output_lstm = RepeatVector(params['len_input'])(D_encoder_lstm)
+    encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
+    # output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
     # Conv block
-    D_conv_1 = Conv1D(filters = params['conv_filters'][0],
-                      kernel_size = params['kernel_size'],
-                      activation = params['conv_activation'],
-                      kernel_initializer = params['conv_initializer'],
-                      padding = 'same')(D_encoder_input)
+    conv_1 = Conv1D(
+        filters = params['conv_filters'][0],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        kernel_initializer = params['conv_initializer'],
+        padding = 'same')(encoder_input)
     if params['use_batchnorm']:
-        D_conv_1 = BatchNormalization()(D_conv_1)
-
-    D_conv_2 = Conv1D(filters = params['conv_filters'][1],
-                      kernel_size = params['kernel_size'],
-                      activation = params['conv_activation'],
-                      kernel_initializer = params['conv_initializer'],
-                      padding = 'same')(D_conv_1)
+        conv_1 = BatchNormalization()(conv_1)
+    conv_2 = Conv1D(
+        filters = params['conv_filters'][1],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        kernel_initializer = params['conv_initializer'],
+        padding = 'same')(conv_1)
     if params['use_batchnorm']:
-        D_conv_2 = BatchNormalization()(D_conv_2)
+        conv_2 = BatchNormalization()(conv_2)
 
-    D_concatenation = Concatenate(axis = -1)([D_output_lstm, D_conv_2])
+    # Concatenate LSTM and Conv Encoder outputs for final Dense layer
+    conv_2 = Flatten()(conv_2)
+    encoder_output = Concatenate()([encoder_lstm, conv_2])
 
-    ## DECODER
-    D_decoder_lstm = LSTM(params['len_input'])(D_concatenation)
-    D_decoder_dense = Dense(units = params['discriminator_dense_units'],
-                            activation = params['decoder_dense_activation'],
-                            kernel_initializer = params['decoder_dense_initializer']
-                      )(D_decoder_lstm)
-    D_decoder_output = Dense(1,
-                             activation = 'sigmoid',
-                             kernel_initializer = params['decoder_dense_initializer']
-                     )(D_decoder_dense)
+    # Final layer for binary classification (real/fake)
+    discriminator_output = Dense(
+        units = 1,
+        activation = 'sigmoid',
+        kernel_initializer = params['decoder_dense_initializer'])(encoder_output)
 
-    Discriminator = Model(inputs = [D_encoder_input], outputs = [D_decoder_output])
+    Discriminator = Model(inputs = [encoder_input], outputs = [discriminator_output])
+
     return Discriminator
 
 
