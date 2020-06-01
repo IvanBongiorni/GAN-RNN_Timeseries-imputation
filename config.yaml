@@ -14,7 +14,7 @@ check_test_performance: False
 seed: 123
 val_test_ratio: [0.06, 0.06]
 # Use subset of Train data for each epoch - if None use all
-train_size_per_epoch: None #50000
+# train_size_per_epoch: None #50000
 n_epochs: 1
 batch_size: 64
 learning_rate: 0.0001
@@ -49,6 +49,6 @@ discriminator_dense_initializer: 'he_normal'
 # ratio of total NaN's at each deterioration
 total_nan_range: [0.12, 0.25]
 # probability of random noise vs interval noise
-prob_noise: 0.5
+prob_noise: 0.1
 # what value to be fed instead of NaN
 placeholder_value: -0.1
