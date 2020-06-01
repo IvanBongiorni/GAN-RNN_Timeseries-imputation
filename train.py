@@ -206,16 +206,18 @@ def train_GAN(generator, discriminator, params):
             generator_current_loss, discriminator_current_loss = train_step(deteriorated, real_example)
 
             # Report progress
-            if iteration % 50 == 0:
+            if iteration % 100 == 0:
                 # To get Discriminator's binary accuracy
                 generator_imputation = generator(deteriorated)
+                discriminator_guess_reals = discriminator(real_example)
                 discriminator_guess_fakes = discriminator(generator_imputation)
-
-                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy: {}   \tTime: {}ss'.format(
+                
+                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})   \tTime: {}ss'.format(
                     epoch, iteration,
                     generator_current_loss,
                     discriminator_current_loss,
-                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)),
+                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)),
+                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)),
                     round(time.time()-start, 4)
                 ))
 
