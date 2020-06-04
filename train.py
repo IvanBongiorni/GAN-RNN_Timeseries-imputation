@@ -67,29 +67,22 @@ def train_vanilla_seq2seq(model, params):
 
     ## Training session starts
 
-    #train_loss_history = []
-    #val_loss_history = []
+    # Get list of all Training and Validation observations
+    X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
+    if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
+    if '.gitignore' in X_files: X_files.remove('.gitignore')
+    X_files = np.array(X_files)
+
+    V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
+    if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
+    if '.gitignore' in V_files: V_files.remove('.gitignore')
+    V_files = np.array(V_files)
 
     for epoch in range(params['n_epochs']):
 
-        # Get list of all Training and Validation observations
-        X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
-        if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
-        if '.gitignore' in X_files: X_files.remove('.gitignore')
-        X_files = np.array(X_files)
-
-        V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
-        if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
-        if '.gitignore' in V_files: V_files.remove('.gitignore')
-        V_files = np.array(V_files)
-
-        # Sample subset from it if requested, otherwise use all data
-        #if params['train_size_per_epoch'] is not None:
-        #    X_files = X_files[ np.random.choice(X_files.shape[0], size = params['train_size_per_epoch'], replace = False) ]
-
         # Shuffle data by shuffling row index
-        # if params['shuffle']:
-        #     X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace = False) ]
+        if params['shuffle']:
+            X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace = False) ]
 
         for iteration in range(X_files.shape[0]):
             start = time.time()
@@ -102,18 +95,11 @@ def train_vanilla_seq2seq(model, params):
 
             # Save and print progress each 50 training steps
             if iteration % 50 == 0:
-
-                v_file = os.listdir( os.getcwd() + '/data_processed/Validation/' )
-                if 'readme_validation.md' in v_file: v_file.remove('readme_validation.md')
-                if '.gitignore' in v_file: v_file.remove('.gitignore')
-                v_file = np.random.choice(v_file)
+                v_file = np.random.choice(V_files)
                 batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
                 batch, deteriorated = process_series(batch, params)
 
                 validation_loss = loss(batch, model(deteriorated))
-
-                #train_loss_history.append(current_loss)
-                #val_loss_history.append(validation_loss)
 
                 print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
                     epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
@@ -139,7 +125,8 @@ def train_GAN(generator, discriminator, params):
     import numpy as np
     import tensorflow as tf
 
-    cross_entropy = tf.keras.losses.BinaryCrossentropy()#from_logits = True) # this works for both G and D
+    cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True) # this works for both G and D
+    MAE = tf.keras.losses.MeanAbsoluteError()  # to check Validation performance
 
     generator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
     discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
@@ -148,11 +135,22 @@ def train_GAN(generator, discriminator, params):
     def generator_loss(discriminator_guess_fakes):
         return cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
 
+    # @tf.function
+    # def discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes, real_example):
+    #     loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
+    #     loss_real = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
+    #     return loss_fakes + loss_real
+
     @tf.function
-    def discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes, real_example):
-        loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
-        loss_real = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
-        return loss_fakes + loss_real
+    def discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes):
+        loss_fakes = cross_entropy(
+            tf.random.uniform(shape = tf.shape(discriminator_guess_fakes), minval = 0.0, maxval = 0.2), discriminator_guess_fakes
+        )
+        # loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
+        loss_reals = cross_entropy(
+            tf.random.uniform(shape = tf.shape(discriminator_guess_reals), minval = 0.8, maxval = 1), discriminator_guess_reals
+        )
+        return loss_fakes + loss_reals
 
     @tf.function
     def train_step(deteriorated, real_example):
@@ -164,7 +162,7 @@ def train_GAN(generator, discriminator, params):
             discriminator_guess_reals = discriminator(real_example)
 
             generator_current_loss = generator_loss(discriminator_guess_fakes)
-            discriminator_current_loss = discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes, real_example)
+            discriminator_current_loss = discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes)
 
         generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
         dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
@@ -174,21 +172,22 @@ def train_GAN(generator, discriminator, params):
 
         return generator_current_loss, discriminator_current_loss
 
+    # Get list of all Training and Validation observations
+    X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
+    if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
+    if '.gitignore' in X_files: X_files.remove('.gitignore')
+    X_files = np.array(X_files)
+
+    V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
+    if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
+    if '.gitignore' in V_files: V_files.remove('.gitignore')
+    V_files = np.array(V_files)
 
     for epoch in range(params['n_epochs']):
-
-        # Get list of all Training and Validation observations
-        X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
-        if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
-        if '.gitignore' in X_files: X_files.remove('.gitignore')
-        X_files = np.array(X_files)
-
-        V_files = os.listdir( os.getcwd() + '/data_processed/Validation/' )
-        if 'readme_validation.md' in V_files: V_files.remove('readme_validation.md')
-        if '.gitignore' in V_files: V_files.remove('.gitignore')
-        V_files = np.array(V_files)
+        ## TODO: ADD SHUFFLING
 
         for iteration in range(X_files.shape[0]):
+        # for iteration in range( int(X_files.shape[0] * 0.1) ):      ### TEMPORARY TEST
             start = time.time()
 
             # fetch batch by filenames index and train
@@ -207,11 +206,20 @@ def train_GAN(generator, discriminator, params):
 
             # Report progress
             if iteration % 100 == 0:
-                # To get Discriminator's binary accuracy
+                # To get Generative and Aversarial Losses (and binary accuracy)
                 generator_imputation = generator(deteriorated)
                 discriminator_guess_reals = discriminator(real_example)
                 discriminator_guess_fakes = discriminator(generator_imputation)
-                
+
+                # Check Imputer's plain Loss on training example
+                train_loss = MAE(batch, generator(deteriorated))
+
+                # Add imputation Loss on Validation data
+                v_file = np.random.choice(V_files)
+                batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
+                batch, deteriorated = process_series(batch, params)
+                val_loss = MAE(batch, generator(deteriorated))
+
                 print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})   \tTime: {}ss'.format(
                     epoch, iteration,
                     generator_current_loss,
@@ -220,6 +228,7 @@ def train_GAN(generator, discriminator, params):
                     tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)),
                     round(time.time()-start, 4)
                 ))
+                print('\t\tTraining Loss: {}   \tValidation Loss: {}\n'.format(train_loss, val_loss))
 
     print('\nTraining complete.\n')
 

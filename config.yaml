@@ -1,5 +1,5 @@
 # MAIN
-model_name: 'gan_01'
+model_name: 'gan_05_labelsmoothing'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
