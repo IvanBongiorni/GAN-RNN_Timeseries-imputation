@@ -2,7 +2,7 @@
 
 ----
 
-# WORK IN PROGRESS. I'm currently testing the performance of the baseline seq2seq model and fixing deterioration function
+# WORK IN PROGRESS. I have prototyped Vanilla seq2seq and GAN. Partially adversarial training is on the way and should be ready soon.
 
 Author: Ivan Bongiorni
 
