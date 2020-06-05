@@ -49,6 +49,6 @@ discriminator_dense_initializer: 'he_normal'
 # ratio of total NaN's at each deterioration
 total_nan_range: [0.12, 0.25]
 # probability of random noise vs interval noise
-prob_noise: 0.1
+prob_noise: 0.25
 # what value to be fed instead of NaN
 placeholder_value: -0.1
