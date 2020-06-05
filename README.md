@@ -11,11 +11,9 @@ Author: Ivan Bongiorni
 
 The goal of this project is the implementation of multiple configurations of a **Recurrent Convolutional Seq2seq** neural network for the imputation of time series data. Three implementations are provided:
 
-1. A "Vanilla" seq2seq model.
-2. A GAN (Generative Adversarial Network), where an Imputer is trained to fool an adversarial Network that tries to distinguish real and fake (imputed) time series.
-3. A partially adversarial model, in which both Loss structures of previous models are combined in one: an Imputer model must reduce true error Loss, while at the same time try to fool a Discriminator.
-
-Their performance the models and their ensembles is then compared, together with simpler imputation methods for comparison.
+1. A "Vanilla" *Recurrent Convolutional seq2seq* model.
+2. A *GAN* (*Generative Adversarial Network*) based on the same architecture above, where an Imputer is trained to fool an adversarial Network that tries to distinguish real and fake (imputed) time series.
+3. A *partially adversarial model*, in which both Loss structures of previous models are combined in one: an Imputer model must reduce true error Loss, while trying to fool a Discriminator at the same time.
 
 Models are Implemented in TensorFlow 2 and trained on the [Wikipedia Web Traffic Time Series Forecasting](https://www.kaggle.com/c/web-traffic-time-series-forecasting) dataset.
 
