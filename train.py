@@ -184,7 +184,10 @@ def train_GAN(generator, discriminator, params):
     V_files = np.array(V_files)
 
     for epoch in range(params['n_epochs']):
-        ## TODO: ADD SHUFFLING
+
+        # Shuffle data by shuffling row index
+        if params['shuffle']:
+            X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace = False) ]
 
         for iteration in range(X_files.shape[0]):
         # for iteration in range( int(X_files.shape[0] * 0.1) ):      ### TEMPORARY TEST
@@ -203,8 +206,7 @@ def train_GAN(generator, discriminator, params):
             real_example = np.expand_dims(real_example, axis = -1)
 
             generator_current_loss, discriminator_current_loss = train_step(deteriorated, real_example)
-
-            # Report progress
+            
             if iteration % 100 == 0:
                 # To get Generative and Aversarial Losses (and binary accuracy)
                 generator_imputation = generator(deteriorated)
