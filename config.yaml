@@ -1,5 +1,5 @@
 # MAIN
-model_name: 'gan_05_labelsmoothing'
+model_name: 'gan_06'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
@@ -18,7 +18,7 @@ val_test_ratio: [0.06, 0.06]
 n_epochs: 1
 batch_size: 64
 learning_rate: 0.0001
-# shuffle: True
+shuffle: True
 
 len_input: 128
 
