@@ -2,7 +2,7 @@
 Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
 2020-03-19
 
-Model implementation.
+Models implementation.
 """
 import tensorflow as tf
 
@@ -70,9 +70,8 @@ def build_vanilla_seq2seq(params):
 
 def build_discriminator(params):
     """
-    Discriminator is based on the Vanilla seq2seq architecture. The two Encoders (Recurrent
-    and Convolutional) are exactly the same. The Decoder is removed, and a Dense layer is
-    left instead, in order to perform binary classification.
+    Discriminator is based on the Vanilla seq2seq Encoder. The Decoder is removed
+    and a Dense layer is left instead to perform binary classification.
     """
     from tensorflow.keras.models import Model
     from tensorflow.keras.layers import (
