@@ -37,12 +37,10 @@ decoder_output_activation: 'relu'
 decoder_dense_initializer: 'he_normal'
 decoder_dense_dropout: 0.1
 
-
 # GAN HYPERPARAMETERS
 save_discriminator: True
-discriminator_dense_units: 50
-discriminator_dense_activation: 'elu'
-discriminator_dense_initializer: 'he_normal'
+# weight for Imputer Loss in partially adversarial training: [ MAE_Loss * w + GAN_Loss * (1-w) ]
+weight: 0.9
 
 
 # DETERIORATION PARAMETERS
