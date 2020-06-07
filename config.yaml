@@ -40,7 +40,7 @@ decoder_dense_dropout: 0.1
 # GAN HYPERPARAMETERS
 save_discriminator: True
 # weight for Imputer Loss in partially adversarial training: [ MAE_Loss * w + GAN_Loss * (1-w) ]
-weight: 0.9
+loss_weight: 0.9
 
 
 # DETERIORATION PARAMETERS
