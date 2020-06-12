@@ -2,9 +2,7 @@
 
 ----
 
-# WORK IN PROGRESS. I have prototyped Vanilla seq2seq and GAN. Partially adversarial training is on the way and should be ready soon.
-
-Author: Ivan Bongiorni
+Author: Ivan Bongiorni. [LinkedIn](https://www.linkedin.com/in/ivan-bongiorni-b8a583164/).
 
 
 ## Description
