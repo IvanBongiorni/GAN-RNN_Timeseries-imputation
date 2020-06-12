@@ -20,20 +20,40 @@ def left_zero_fill(x):
 
 
 def process_url(url):
-    """ Extracts 'language' variable from URL string - 'na' for 'no language detected' """
+    """
+    Extracts four variables from URL string:
+        language:  code - with 'na' for 'no language detected'
+        website:   what type of website: 'wikipedia', 'wikimedia', 'mediawiki'
+        access:    type of access (e.g.: mobile, desktop, both, ...)
+        agent:     type of agent
+    """
     import re
     import numpy as np
     import pandas as pd
 
-    if '_en.' in url: lang = 'en'
-    elif '_ja.' in url: lang = 'ja'
-    elif '_de.' in url: lang = 'de'
-    elif '_fr.' in url: lang = 'fr'
-    elif '_zh.' in url: lang = 'zh'
-    elif '_ru.' in url: lang = 'ru'
-    elif '_es.' in url: lang = 'es'
-    else: lang = 'na'
-    return lang
+    if '_en.' in url: language = 'en'
+    elif '_ja.' in url: language = 'ja'
+    elif '_de.' in url: language = 'de'
+    elif '_fr.' in url: language = 'fr'
+    elif '_zh.' in url: language = 'zh'
+    elif '_ru.' in url: language = 'ru'
+    elif '_es.' in url: language = 'es'
+    else: language = 'na'
+
+    if 'wikipedia' in url: website = 'wikipedia'
+    elif 'wikimedia' in url: website = 'wikimedia'
+    elif 'mediawiki' in url: website = 'mediawiki'
+
+    access, agent = re.split('_', url)[-2:]
+
+    url_features = {
+        # 'url': url,
+        'language': language,
+        'website': website,
+        'access': access,
+        'agent': agent
+    })
+    return url_features
 
 
 # @numba.jit(python = True)

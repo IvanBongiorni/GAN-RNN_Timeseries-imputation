@@ -72,22 +72,27 @@ def processing_main():
     params = yaml.load(open(os.getcwd() + '/config.yaml'), yaml.Loader)
 
     print('Extracting URL metadata from dataframe.')
-    page_lang = [ tools.process_url(url) for url in df['Page'].tolist() ]
-    page_lang = pd.Series(page_lang)
+    page_vars = [ tools.process_url(url) for url in df['Page'].tolist() ]
+    page_vars = pd.DataFrame(page_vars)
     df.drop('Page', axis = 1, inplace = True)
 
     print('Preprocessing trends by language group:')
-    np.random.seed(params['seed'])
-
-    X_train = []
-    X_val = []
-    X_test = []
-    scaling_dict = {}   # This is to save scaling params - by language subgroup
+    # np.random.seed(params['seed'])
+    # X_train = []
+    # X_val = []
+    # X_test = []
+    scaling_dict = {}   # to save scaling params - by language subgroup
 
     for language in languages:
         start = time.time()
 
-        sdf = df[ page_lang == language ].values
+        # Separate trend data and URL vars in two sub-dataframe (lang subgroup)
+        sdf = df[ page_vars['language'] == language ]
+        sub_page_vars = page_vars[ page_vars['language'] == language ]
+        # sdf.drop(['url', 'language', 'website', 'access', 'agent'], axis = 1, inplace = True)
+        sdf.drop(['language', 'website', 'access', 'agent'], axis = 1, inplace = True)
+        sdf = sdf.values
+        sub_page_vars = sub_page_vars.values
 
         ### SPLIT IN TRAIN - VAL - TEST
         # Generate random index to each row following 'val_test_size' Pr distribution
@@ -97,25 +102,37 @@ def processing_main():
                                        params['val_test_ratio'][0],
                                        params['val_test_ratio'][1]],
                                   replace = True)
-        sdf_train = sdf[ sample == 0 ]
-        sdf_val = sdf[ sample == 1 ]
-        sdf_test = sdf[ sample == 2 ]
-        del sdf # free memory
+        X_train = sdf[ sample == 0 ]
+        sub_page_vars_train = sub_page_vars[ sample == 0 ]
+
+        X_val = sdf[ sample == 1 ]
+        sub_page_vars_val = sub_page_vars[ sample == 1 ]
+
+        X_test = sdf[ sample == 2 ]
+        sub_page_vars_test = sub_page_vars[ sample == 2 ]
+
+        del sdf, sub_page_vars # free memory
 
         # Scale and save param into dict
         scaling_percentile = np.nanpercentile(sdf_train, 99)  # np.nanpercentile ignores NaN's
         scaling_dict[language] = float(scaling_percentile)
 
+        ## TODO: USARE UN'UNICA SCALATURA
+        
         # Apply sequence of processing transformations, save to folder, and del sdf's to free memory
-        sdf_train = apply_processing_transformations(sdf_train, params, scaling_percentile)
-        X_train.append(sdf_train)
-        del sdf_train
+        X_train = apply_processing_transformations(X_train, params, scaling_percentile)
+        ## TODO: DEVO APPLICARE UN FILTRO CHE TRATTENGA ANCHE LE page_vars
+        ##      Secondo me deve esere basato sull'indicizzazione di URL
+        ##      Probabilmente dovro usare una list comprehension
 
-        sdf_val = apply_processing_transformations(sdf_val, params, scaling_percentile)
-        X_val.append(sdf_val)
-        del sdf_val
+        # X_train.append(sdf_train)
+        # del sdf_train
 
-        sdf_test = apply_processing_transformations(sdf_test, params, scaling_percentile)
+        X_val = apply_processing_transformations(X_val, params, scaling_percentile)
+        # X_val.append(sdf_val)
+        # del sdf_val
+
+        X_test = apply_processing_transformations(X_test, params, scaling_percentile)
         X_test.append(sdf_test)
         del sdf_test
 

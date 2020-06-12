@@ -11,7 +11,7 @@ check_test_performance: False
 
 
 # MODEL HYPERPARAMETERS
-seed: 123
+# seed: 123
 val_test_ratio: [0.06, 0.06]
 # Use subset of Train data for each epoch - if None use all
 # train_size_per_epoch: None #50000
