@@ -1,10 +1,10 @@
 # MAIN
-model_name: 'gan_06'
+model_name: 'pgan_00'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
-model_type: 2
+model_type: 3
 use_gpu: True
 # After training, load Test data and check test loss
 check_test_performance: False
@@ -40,7 +40,7 @@ decoder_dense_dropout: 0.1
 # GAN HYPERPARAMETERS
 save_discriminator: True
 # weight for Imputer Loss in partially adversarial training: [ MAE_Loss * w + GAN_Loss * (1-w) ]
-loss_weight: 0.9
+loss_weight: 0.85
 
 
 # DETERIORATION PARAMETERS

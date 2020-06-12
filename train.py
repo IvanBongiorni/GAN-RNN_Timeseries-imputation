@@ -136,7 +136,7 @@ def train_GAN(generator, discriminator, params):
         return cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
 
     # @tf.function
-    # def discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes, real_example):
+    # def discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes):
     #     loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
     #     loss_real = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
     #     return loss_fakes + loss_real
@@ -151,7 +151,7 @@ def train_GAN(generator, discriminator, params):
             tf.random.uniform(shape = tf.shape(discriminator_guess_reals), minval = 0.8, maxval = 1), discriminator_guess_reals
         )
         return loss_fakes + loss_reals
-
+        
     @tf.function
     def train_step(deteriorated, real_example):
         with tf.GradientTape() as generator_tape, tf.GradientTape() as discriminator_tape:
@@ -272,19 +272,16 @@ def train_partial_GAN(generator, discriminator, params):
         mae_loss = MAE(batch, deteriorated)
         gan_loss = cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
 
-        tf.print(mae_loss, gan_loss)
-
         generator_loss = mae_loss * w + gan_loss * (1-w)
         return generator_loss
 
     @tf.function
     def discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes):
-        loss_fakes = cross_entropy(
-            tf.random.uniform(shape = tf.shape(discriminator_guess_fakes), minval = 0.0, maxval = 0.2), discriminator_guess_fakes
-        )
-        loss_reals = cross_entropy(
-            tf.random.uniform(shape = tf.shape(discriminator_guess_reals), minval = 0.8, maxval = 1), discriminator_guess_reals
-        )
+        loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
+        loss_reals = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
+
+        tf.print('Discriminator Loss, fakes, reals:', loss_fakes, loss_reals)
+
         return loss_fakes + loss_reals
 
     @tf.function
