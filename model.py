@@ -28,12 +28,13 @@ def build_vanilla_seq2seq(params):
     )
 
     ## ENCODER
-    encoder_input = Input((params['len_input'], 1))
+    encoder_input = Input((None, 9))
 
     # LSTM block
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
+    Conv block
     # Conv block
     conv_1 = Conv1D(
         filters = params['conv_filters'][0],
@@ -52,16 +53,16 @@ def build_vanilla_seq2seq(params):
     if params['use_batchnorm']:
         conv_2 = BatchNormalization()(conv_2)
 
+
     # Concatenate LSTM and Conv Encoder outputs for Decoder LSTM layer
     encoder_output = Concatenate(axis = -1)([output_lstm, conv_2])
 
-    decoder_lstm = LSTM(params['len_input'], return_sequences = True)(encoder_output)
+    decoder_lstm = LSTM(params['decoder_dense_units'], return_sequences = True)(encoder_output)
+
     decoder_output = TimeDistributed(
-        Dense(
-            units = 1,
-            activation = params['decoder_output_activation'],
-            kernel_initializer = params['decoder_dense_initializer'])
-        )(decoder_lstm)
+        Dense(units = 1,
+              activation = params['decoder_output_activation'],
+              initializer = params['decoder_dense_initializer']))(decoder_lstm)
 
     seq2seq = Model(inputs = [encoder_input], outputs = [decoder_output])
 
@@ -80,12 +81,13 @@ def build_discriminator(params):
     )
 
     ## ENCODER
-    encoder_input = Input((params['len_input'], 1))
+    encoder_input = Input((None, 9))
 
     # LSTM block
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
-    # output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
+    output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
+    Conv block
     # Conv block
     conv_1 = Conv1D(
         filters = params['conv_filters'][0],
@@ -104,9 +106,9 @@ def build_discriminator(params):
     if params['use_batchnorm']:
         conv_2 = BatchNormalization()(conv_2)
 
-    # Concatenate LSTM and Conv Encoder outputs for final Dense layer
-    conv_2 = Flatten()(conv_2)
-    encoder_output = Concatenate()([encoder_lstm, conv_2])
+    # Concatenate LSTM and Conv Encoder outputs and Flatten for Decoder LSTM layer
+    encoder_output = Concatenate(axis = -1)([output_lstm, conv_2])
+    encoder_output = Flatten()(encoder_output)
 
     # Final layer for binary classification (real/fake)
     discriminator_output = Dense(
