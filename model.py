@@ -28,7 +28,7 @@ def build_vanilla_seq2seq(params):
     )
 
     ## ENCODER
-    encoder_input = Input((None, 9))
+    encoder_input = Input((params['len_input'], 9))
 
     # LSTM block
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
