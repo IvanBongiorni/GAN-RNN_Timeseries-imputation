@@ -5,10 +5,15 @@ Author: Ivan Bongiorni
 Tools for data processing pipeline. These are more technical functions to be iterated during
 main pipeline run.
 """
-# import numba
+import os
+import re
+import time
+import numpy as np
+import pandas as pd
+
+from pdb import set_trace as BP
 
 
-# @numba.jit(python = True)
 def left_zero_fill(x):
     import numpy as np
     if np.isfinite(x[0]):
@@ -59,15 +64,15 @@ def process_url(url):
 def get_time_schema(df):
     """ Returns np.array with patterns for time-related variables (year/week days)
     in [0,1] range, to be repeated on all trends. """
-    daterange = pd.date_range(df.columns[1], df.columns[-1], freq='D').to_series()
+    import numpy as np
+    import pandas as pd
+
+    daterange = pd.date_range(df.columns[0], df.columns[-1], freq='D').to_series()
 
     weekdays = daterange.dt.dayofweek
     weekdays = weekdays.values / weekdays.max()
     yeardays = daterange.dt.dayofyear
     yeardays = yeardays.values / yeardays.max()
-
-    weekdays = weekdays.values
-    yeardays = yeardays.values
 
     # First year won't enter the Train set because of year lag
     weekdays = weekdays[ 365: ]
@@ -76,7 +81,6 @@ def get_time_schema(df):
     return weekdays, yeardays
 
 
-# @numba.jit(python = True)
 def scale_trends(array, scaling_percentile = None):
     """
     Takes a linguistic sub-dataframe and applies a robust custom scaling in two steps:
@@ -90,7 +94,7 @@ def scale_trends(array, scaling_percentile = None):
     array = np.log(array + 1)
 
     if not scaling_percentile:
-        scaling_percentile = np.percentile(array, 99)
+        scaling_percentile = np.nanpercentile(array, 99)
         array = array / scaling_percentile
         return array, scaling_percentile
     else:
@@ -98,9 +102,8 @@ def scale_trends(array, scaling_percentile = None):
         return array
 
 
-# @numba.jit(python = True)
 def right_trim_nan(x):
-    """ Trims all NaN's on the right """
+    ''' Trims all NaN's on the right '''
     import numpy as np
 
     if np.isnan(x[-1]):
@@ -110,34 +113,46 @@ def right_trim_nan(x):
         return x
 
 
-def get_training_matrix(trend, page, weekdays, yeardays):
-    ''' Combines trend and all other input vars into a 2D array to be stored on drive. '''
+def apply_processing_transformations(trend, vars, weekdays, yeardays, params):
+    '''
+    Takes trend and webpage variables and applies pre-processing: left pad and
+    right trim NaN's, filters trends of insufficient length.
+    Finally generates a 2D array to be stored and loaded during training.
+    '''
     import numpy as np
+    import tools  # local import
 
-    trend_lag_year = trend[ :-365 ]
-    trend_lag_quarter = trend[ 180:-180 ]
-    trend = trend[ 365: ]
+    trend = tools.left_zero_fill(trend) # Fill left-NaN's with zeros
+    trend = tools.right_trim_nan(trend) # Trim right-NaN's
+
+    # Exclude trends that still contain internal NaN's or not long enough to be fed into the series
+    if np.sum(np.isnan(trend)) > 0 or len(trend) < params['len_input'] + 365:
+        return None
+
+    #Combine trend and all other input vars into a 2D array to be stored on drive. '''
+    trend_lag_year = np.copy(trend[:-365])
+    trend_lag_quarter = np.copy(trend[180:])
+    trend = trend[365:]
+    trend_lag_quarter = trend_lag_quarter[:len(trend)]
 
     X = np.column_stack([
         trend,                           # trend
-        trend_lag_quarter,               # trend _ lag 1 quarter
-        trend_lag_year,                  # trend _ lag 1 year
-        np.repeat(page[0], len(trend)),  # language
-        np.repeat(page[1], len(trend)),  # website
-        np.repeat(page[2], len(trend)),  # access
-        np.repeat(page[3], len(trend)),  # agent
-        weekday[:len(trend)],            # weekday in [0,1]
-        yearday[:len(trend)]             # day of the year in [0,1]
+        trend_lag_quarter,               # trend _ 1 quarter lag
+        trend_lag_year,                  # trend _ 1 year lag
+        np.repeat(vars[0], len(trend)),  # language
+        np.repeat(vars[1], len(trend)),  # website
+        np.repeat(vars[2], len(trend)),  # access
+        np.repeat(vars[3], len(trend)),  # agent
+        weekdays[:len(trend)],           # weekday in [0,1]
+        yeardays[:len(trend)]            # day of the year in [0,1]
     ])
     return X
 
 
-# @numba.jit(python = True)
 def RNN_univariate_processing(series, len_input):
     ''' From 1D series creates 2D matrix of sequences defined by params['len_input'] '''
     # This function is a simplification of RNN_dataprep from:
     # https://github.com/IvanBongiorni/TensorFlow2.0_Notebooks/blob/master/TensorFlow2.0__04.02_RNN_many2many.ipynb
-    import numpy as np
     import numpy as np
 
     S = [ series[i : i+len_input] for i in range(len(series)-len_input+1) ]
