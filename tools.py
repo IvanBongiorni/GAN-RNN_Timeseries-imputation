@@ -149,14 +149,19 @@ def apply_processing_transformations(trend, vars, weekdays, yeardays, params):
     return X
 
 
-def RNN_univariate_processing(series, len_input):
-    ''' From 1D series creates 2D matrix of sequences defined by params['len_input'] '''
-    # This function is a simplification of RNN_dataprep from:
-    # https://github.com/IvanBongiorni/TensorFlow2.0_Notebooks/blob/master/TensorFlow2.0__04.02_RNN_many2many.ipynb
+def RNN_multivariate_processing(X):
+    '''
+    Takes a 2D array with trend and associated variables, and turns it into a 3D
+    array for RNN with shape:
+        ( no. observations , params['len_input'] , no. input vars )
+    For each variable, iterates _univariate_processing() internal function, that
+    from 1D series creates 2D matrix of sequences defined by params['len_input']
+    '''
     import numpy as np
+    def _univariate_processing(series, len_input):
+        S = [ series[i : i+len_input] for i in range(len(series)-len_input+1) ]
+        return np.stack(S)
 
-    S = [ series[i : i+len_input] for i in range(len(series)-len_input+1) ]
-    S = np.stack(S)
-
-    S = S.astype(np.float32)
-    return S
+    X = [ _univariate_processing(X[:,i]) for i in range(X.shape[1]) ]
+    X = np.dstack(X)
+    return X
