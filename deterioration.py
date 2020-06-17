@@ -23,8 +23,6 @@ def _blank_random_interval(x, min_size, max_size):
     return x
 
 
-
-
 def apply(X, params):
     '''
     Iterates apply_on_series() on all rows of input numpy 2D array.
@@ -53,15 +51,3 @@ def apply(X, params):
 
     X = np.apply_along_axis(apply_on_series, 1, X)
     return X
-
-    # def apply_on_series(x):
-    #     if np.random.choice([0, 1], p = [1-params['prob_noise'], params['prob_noise']]):
-    #         tot_exp_nan = round(np.random.exponential(scale = params['exp_scale']))
-    #
-    #         if threshold_low <= tot_exp_nan <= threshold_upp:
-    #             x = _exponential_noise(x, tot_exp_nan)
-    #         else:
-    #             x = _blank_random_interval(x, threshold_low, threshold_upp)
-    #     else:
-    #         x = _blank_random_interval(x, threshold_low, threshold_upp)
-    #     return x
