@@ -21,23 +21,22 @@ import deterioration
 import tools
 
 
-def process_series(series, params):
+def process_series(batch, params):
     import numpy as np
     import deterioration, tools  # local imports
 
-    series = series[ np.isfinite(series) ] # only right-trim NaN's. Others were removed in processing
-    series = tools.RNN_processing(series, len_input = params['len_input'])
-    sample = np.random.choice(series.shape[0], size = np.min([series.shape[0], params['batch_size']]), replace = False)
-    series = series[ sample , : , : ]
-    deteriorated = np.copy(series)
-    deteriorated[ : , : , 0 ] = deterioration.apply(deteriorated[ : , : , 0 ], params)
-    deteriorated[ np.isnan(deteriorated) ] = params['placeholder_value']
+    # print(batch.shape, len(batch)-params['len_input']+1)
 
-    # ANN requires shape: ( n obs , len input , 1 )
-    series = np.expand_dims(series, axis = -1)
-    deteriorated = np.expand_dims(deteriorated, axis = -1)
+    # series = series[ np.isfinite(series) ] # only right-trim NaN's. Others were removed in processing
+    X_batch = tools.RNN_multivariate_processing(array = batch, len_input = params['len_input'])
+    sample = np.random.choice(X_batch.shape[0], size = np.min([X_batch.shape[0], params['batch_size']]), replace = False)
+    X_batch = X_batch[ sample,:,: ]
+    Y_batch = np.copy(X_batch[:,:,0])
+    X_batch[:,:,0] = deterioration.apply(X_batch[:,:,0], params)
+    X_batch[ np.isnan(X_batch) ] = params['placeholder_value']
 
-    return series, deteriorated
+    Y_batch = np.expand_dims(Y_batch, axis=-1)
+    return X_batch, Y_batch
 
 
 def train_vanilla_seq2seq(model, params):
@@ -58,9 +57,9 @@ def train_vanilla_seq2seq(model, params):
     loss = tf.keras.losses.MeanAbsoluteError()
 
     @tf.function
-    def train_on_batch(batch, deteriorated):
+    def train_on_batch(X_batch, Y_batch):
         with tf.GradientTape() as tape:
-            current_loss = loss(batch, model(deteriorated))
+            current_loss = loss(Y_batch, model(X_batch))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
@@ -89,17 +88,17 @@ def train_vanilla_seq2seq(model, params):
 
             # fetch batch by filenames index and train
             batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            batch, deteriorated = process_series(batch, params)
+            X_batch, Y_batch = process_series(batch, params)
 
-            current_loss = train_on_batch(batch, deteriorated)
-
+            current_loss = train_on_batch(X_batch, Y_batch)
+            
             # Save and print progress each 50 training steps
             if iteration % 100 == 0:
                 v_file = np.random.choice(V_files)
                 batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
-                batch, deteriorated = process_series(batch, params)
+                X_batch, Y_batch = process_series(batch, params)
 
-                validation_loss = loss(batch, model(deteriorated))
+                validation_loss = loss(Y_batch, model(X_batch))
 
                 print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
                     epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
