@@ -29,8 +29,8 @@ def process_url(url):
     Extracts four variables from URL string:
         language:  code - with 'na' for 'no language detected'
         website:   what type of website: 'wikipedia', 'wikimedia', 'mediawiki'
-        access:    type of access (e.g.: mobile, desktop, both, ...)
-        agent:     type of agent
+        access:    type of access: 'all-access', 'desktop', 'mobile-web'
+        agent:     type of agent: 'spider', 'all-agents'
     """
     import re
     import numpy as np
@@ -45,9 +45,9 @@ def process_url(url):
     elif '_es.' in url: language = 'es'
     else: language = 'na'
 
-    if 'wikipedia' in url: website = 'wikipedia'
-    elif 'wikimedia' in url: website = 'wikimedia'
-    elif 'mediawiki' in url: website = 'mediawiki'
+    if 'wikipedia' in url: website = 'wikipedia' #-1
+    elif 'wikimedia' in url: website = 'wikimedia' #0
+    elif 'mediawiki' in url: website = 'mediawiki' #1
 
     access, agent = re.split('_', url)[-2:]
 
@@ -139,17 +139,27 @@ def apply_processing_transformations(trend, vars, weekdays, yeardays, params):
         trend,                           # trend
         trend_lag_quarter,               # trend _ 1 quarter lag
         trend_lag_year,                  # trend _ 1 year lag
-        np.repeat(vars[0], len(trend)),  # language
-        np.repeat(vars[1], len(trend)),  # website
-        np.repeat(vars[2], len(trend)),  # access
-        np.repeat(vars[3], len(trend)),  # agent
+        np.repeat(vars[0], len(trend)),  # page variable dummies
+        np.repeat(vars[1], len(trend)),
+        np.repeat(vars[2], len(trend)),
+        np.repeat(vars[3], len(trend)),
+        np.repeat(vars[4], len(trend)),
+        np.repeat(vars[5], len(trend)),
+        np.repeat(vars[6], len(trend)),
+        np.repeat(vars[7], len(trend)),
+        np.repeat(vars[8], len(trend)),
+        np.repeat(vars[9], len(trend)),
+        np.repeat(vars[10], len(trend)),
+        np.repeat(vars[11], len(trend)),
         weekdays[:len(trend)],           # weekday in [0,1]
         yeardays[:len(trend)]            # day of the year in [0,1]
     ])
+
+    X = X.astype(np.float32)
     return X
 
 
-def RNN_multivariate_processing(X):
+def RNN_multivariate_processing(array, len_input):
     '''
     Takes a 2D array with trend and associated variables, and turns it into a 3D
     array for RNN with shape:
@@ -158,10 +168,15 @@ def RNN_multivariate_processing(X):
     from 1D series creates 2D matrix of sequences defined by params['len_input']
     '''
     import numpy as np
+
     def _univariate_processing(series, len_input):
         S = [ series[i : i+len_input] for i in range(len(series)-len_input+1) ]
+        try:
+            S = np.stack(S)
+        except:
+            BP()
         return np.stack(S)
 
-    X = [ _univariate_processing(X[:,i]) for i in range(X.shape[1]) ]
-    X = np.dstack(X)
-    return X
+    array = [ _univariate_processing(array[:,i], len_input) for i in range(array.shape[1]) ]
+    array = np.dstack(array)
+    return array
