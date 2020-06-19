@@ -42,6 +42,10 @@ def processing_main():
     page_vars = pd.DataFrame(page_vars)
     df.drop('Page', axis = 1, inplace = True)
 
+    # One-Hot encode, and leave one out to reduce matrix sparsity
+    page_vars = pd.get_dummies(page_vars)
+    page_vars.drop(['language_na', 'website_mediawiki', 'access_desktop', 'agent_spider'], axis=1, inplace=True)
+
     weekdays, yeardays = tools.get_time_schema(df)  # get fixed time variables
 
     df = df.values
@@ -94,7 +98,7 @@ def processing_main():
                                                        yeardays = yeardays,
                                                        params = params)
         if array is not None:
-            np.save(os.getcwd() + '/data_processed/Validation/X_{}'.format(str(i).zfill(6)), array)
+            np.save(os.getcwd() + '/data_processed/Validation/V_{}'.format(str(i).zfill(6)), array)
     print('\tSaved {} Validation observations.'.format(X_val.shape[0]))
 
     for i in range(X_test.shape[0]):
@@ -104,7 +108,7 @@ def processing_main():
                                                        yeardays = yeardays,
                                                        params = params)
         if array is not None:
-            np.save(os.getcwd() + '/data_processed/Test/X_{}'.format(str(i).zfill(6)), array)
+            np.save(os.getcwd() + '/data_processed/Test/T_{}'.format(str(i).zfill(6)), array)
     print('\tSaved {} Test observations.'.format(X_test.shape[0]))
 
     print('\nPipeline executed in {} ss.\n'.format(round(time.time()-pipeline_start, 2)))
