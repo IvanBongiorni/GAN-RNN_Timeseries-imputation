@@ -28,13 +28,12 @@ def build_vanilla_seq2seq(params):
     )
 
     ## ENCODER
-    encoder_input = Input((params['len_input'], 9))
-
+    encoder_input = Input((params['len_input'], 17))
+    
     # LSTM block
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
-    Conv block
     # Conv block
     conv_1 = Conv1D(
         filters = params['conv_filters'][0],
@@ -62,7 +61,7 @@ def build_vanilla_seq2seq(params):
     decoder_output = TimeDistributed(
         Dense(units = 1,
               activation = params['decoder_output_activation'],
-              initializer = params['decoder_dense_initializer']))(decoder_lstm)
+              kernel_initializer = params['decoder_dense_initializer']))(decoder_lstm)
 
     seq2seq = Model(inputs = [encoder_input], outputs = [decoder_output])
 
@@ -87,7 +86,6 @@ def build_discriminator(params):
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
 
-    Conv block
     # Conv block
     conv_1 = Conv1D(
         filters = params['conv_filters'][0],
