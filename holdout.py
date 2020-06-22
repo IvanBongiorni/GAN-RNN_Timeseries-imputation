@@ -112,7 +112,7 @@ def run_test(model, params, check_test_performance = False, return_stats = False
     import train  #local import
 
     # Load test data
-    print('\n\nCheck model performance on Validation data.')
+    print('\nCheck model performance on Validation data.')
 
     path = os.getcwd() + '/data_processed/Validation/'
     _, _, _, errors = check_performance(model=model, path=path, params=params)
@@ -130,7 +130,7 @@ def run_test(model, params, check_test_performance = False, return_stats = False
         plt.show()
 
         if return_stats:
-            return X, D, P, errors, error_stats
+            return X, Y, P, errors, error_stats
         else:
             return None
     else:
