@@ -29,7 +29,7 @@ def build_vanilla_seq2seq(params):
 
     ## ENCODER
     encoder_input = Input((params['len_input'], 17))
-    
+
     # LSTM block
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
     output_lstm = RepeatVector(params['len_input'])(encoder_lstm)
@@ -69,14 +69,14 @@ def build_vanilla_seq2seq(params):
 
 
 def build_discriminator(params):
-    """
+    '''
     Discriminator is based on the Vanilla seq2seq Encoder. The Decoder is removed
     and a Dense layer is left instead to perform binary classification.
-    """
+    '''
     from tensorflow.keras.models import Model
     from tensorflow.keras.layers import (
-        Input, LSTM, Conv1D, BatchNormalization,
-        Concatenate, Flatten, Dense
+        Input, LSTM, RepeatVector, Conv1D, BatchNormalization,
+        Concatenate, Flatten, TimeDistributed, Dense
     )
 
     ## ENCODER
