@@ -82,31 +82,34 @@ def processing_main():
     print('Start processing of input variables.')
     # Apply sequence of processing transformations and save to folder
     for i in range(X_train.shape[0]):
-        array = tools.apply_processing_transformations(trend = X_train[i,:],
-                                                       vars = page_vars_train[i,:],
-                                                       weekdays = weekdays,
-                                                       yeardays = yeardays,
-                                                       params = params)
+        array = tools.apply_processing_transformations(
+            trend = X_train[i,:],
+            vars = page_vars_train[i,:],
+            weekdays = weekdays,
+            yeardays = yeardays,
+            params = params)
         if array is not None:
             np.save(os.getcwd() + '/data_processed/Training/X_{}'.format(str(i).zfill(6)), array)
     print('\tSaved {} Training observations.'.format(X_train.shape[0]))
 
     for i in range(X_val.shape[0]):
-        array = tools.apply_processing_transformations(trend = X_val[i,:],
-                                                       vars = page_vars_val[i,:],
-                                                       weekdays = weekdays,
-                                                       yeardays = yeardays,
-                                                       params = params)
+        array = tools.apply_processing_transformations(
+            trend = X_val[i,:],
+            vars = page_vars_val[i,:],
+            weekdays = weekdays,
+            yeardays = yeardays,
+            params = params)
         if array is not None:
             np.save(os.getcwd() + '/data_processed/Validation/V_{}'.format(str(i).zfill(6)), array)
     print('\tSaved {} Validation observations.'.format(X_val.shape[0]))
 
     for i in range(X_test.shape[0]):
-        array = tools.apply_processing_transformations(trend = X_test[i,:],
-                                                       vars = page_vars_test[i,:],
-                                                       weekdays = weekdays,
-                                                       yeardays = yeardays,
-                                                       params = params)
+        array = tools.apply_processing_transformations(
+            trend = X_test[i,:],
+            vars = page_vars_test[i,:],
+            weekdays = weekdays,
+            yeardays = yeardays,
+            params = params)
         if array is not None:
             np.save(os.getcwd() + '/data_processed/Test/T_{}'.format(str(i).zfill(6)), array)
     print('\tSaved {} Test observations.'.format(X_test.shape[0]))
