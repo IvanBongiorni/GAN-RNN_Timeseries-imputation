@@ -36,7 +36,7 @@ def build_vanilla_seq2seq(params):
 
     # Conv block
     conv_1 = Conv1D(
-        filters = params['conv_filters'][0],
+        filters = params['conv_filters'],
         kernel_size = params['kernel_size'],
         activation = params['conv_activation'],
         kernel_initializer = params['conv_initializer'],
@@ -44,13 +44,29 @@ def build_vanilla_seq2seq(params):
     if params['use_batchnorm']:
         conv_1 = BatchNormalization()(conv_1)
     conv_2 = Conv1D(
-        filters = params['conv_filters'][1],
+        filters = params['conv_filters'],
         kernel_size = params['kernel_size'],
         activation = params['conv_activation'],
         kernel_initializer = params['conv_initializer'],
         padding = 'same')(conv_1)
     if params['use_batchnorm']:
         conv_2 = BatchNormalization()(conv_2)
+    conv_3 = Conv1D(
+        filters = params['conv_filters'],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        kernel_initializer = params['conv_initializer'],
+        padding = 'same')(conv_2)
+    if params['use_batchnorm']:
+        conv_3 = BatchNormalization()(conv_3)
+    conv_4 = Conv1D(
+        filters = params['conv_filters'],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        kernel_initializer = params['conv_initializer'],
+        padding = 'same')(conv_3)
+    if params['use_batchnorm']:
+        conv_4 = BatchNormalization()(conv_4)
 
 
     # Concatenate LSTM and Conv Encoder outputs for Decoder LSTM layer
