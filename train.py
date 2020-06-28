@@ -29,11 +29,14 @@ def process_series(batch, params):
     sample = np.random.choice(X_batch.shape[0], size=np.min([X_batch.shape[0], params['batch_size']]), replace = False)
     X_batch = X_batch[ sample,:,: ]
     Y_batch = np.copy(X_batch[:,:,0])
-    X_batch[:,:,0] = deterioration.apply(X_batch[:,:,0], params)
-    X_batch[ np.isnan(X_batch) ] = params['placeholder_value']
+    # X_batch[:,:,0] = deterioration.apply(X_batch[:,:,0], params)
+    # X_batch[ np.isnan(X_batch) ] = params['placeholder_value']
+    mask = deterioration.mask(X_batch[:,:,0], params)
+    X_batch[:,:,0] = np.where(mask==1, params['placeholder_value'], X_batch[:,:,0])
 
     Y_batch = np.expand_dims(Y_batch, axis=-1)
-    return X_batch, Y_batch
+    mask = np.expand_dims(mask, axis=-1)
+    return X_batch, Y_batch, mask
 
 
 def train_vanilla_seq2seq(model, params):
@@ -50,13 +53,17 @@ def train_vanilla_seq2seq(model, params):
     import time
     import numpy as np
     import tensorflow as tf
+    import tensorflow.keras.backend as K
+
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
-    loss = tf.keras.losses.MeanAbsoluteError()
+    # loss = tf.keras.losses.MeanAbsoluteError()
 
     @tf.function
-    def train_on_batch(X_batch, Y_batch):
+    def train_on_batch(X_batch, Y_batch, mask):
         with tf.GradientTape() as tape:
-            current_loss = loss(Y_batch, model(X_batch))
+            # current_loss = loss(Y_batch, model(X_batch))
+            current_loss = tf.reduce_mean(tf.math.abs(
+                tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
@@ -85,17 +92,18 @@ def train_vanilla_seq2seq(model, params):
 
             # fetch batch by filenames index and train
             batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            X_batch, Y_batch = process_series(batch, params)
-
-            current_loss = train_on_batch(X_batch, Y_batch)
+            X_batch, Y_batch, mask = process_series(batch, params)
+            
+            current_loss = train_on_batch(X_batch, Y_batch, mask)
 
             # Save and print progress each 50 training steps
             if iteration % 100 == 0:
                 v_file = np.random.choice(V_files)
                 batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
-                X_batch, Y_batch = process_series(batch, params)
+                X_batch, Y_batch, mask = process_series(batch, params)
 
-                validation_loss = loss(Y_batch, model(X_batch))
+                validation_loss = tf.reduce_mean(tf.math.abs(
+                    tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
 
                 print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
                     epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
@@ -198,7 +206,7 @@ def train_GAN(generator, discriminator, params):
             sample = np.random.choice(real_example.shape[0], size=np.min([real_example.shape[0], params['batch_size']]), replace=False)
             real_example = real_example[sample,:,:]
             real_example = np.expand_dims(real_example, axis=-1)
-            
+
             generator_current_loss, discriminator_current_loss = train_step(X_batch, real_example)
 
             if iteration % 100 == 0:
