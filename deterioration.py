@@ -76,5 +76,4 @@ def mask(X, params):
         return x
 
     mask = np.apply_along_axis(apply_on_series, 1, np.zeros(X.shape))
-    mask = np.expand_dims(mask, axis=-1)
     return mask.astype(np.float32)
