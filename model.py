@@ -96,7 +96,7 @@ def build_discriminator(params):
     )
 
     ## ENCODER
-    encoder_input = Input((None, 9))
+    encoder_input = Input((None, 17))
 
     # LSTM block
     encoder_lstm = LSTM(units = params['encoder_lstm_units'])(encoder_input)
@@ -104,7 +104,7 @@ def build_discriminator(params):
 
     # Conv block
     conv_1 = Conv1D(
-        filters = params['conv_filters'][0],
+        filters = params['conv_filters'],
         kernel_size = params['kernel_size'],
         activation = params['conv_activation'],
         kernel_initializer = params['conv_initializer'],
@@ -112,7 +112,7 @@ def build_discriminator(params):
     if params['use_batchnorm']:
         conv_1 = BatchNormalization()(conv_1)
     conv_2 = Conv1D(
-        filters = params['conv_filters'][1],
+        filters = params['conv_filters'],
         kernel_size = params['kernel_size'],
         activation = params['conv_activation'],
         kernel_initializer = params['conv_initializer'],
