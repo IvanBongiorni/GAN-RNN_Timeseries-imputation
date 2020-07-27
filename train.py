@@ -35,33 +35,22 @@ def process_series(batch, params):
     X_batch[:,:,0] = np.where(mask==1, params['placeholder_value'], X_batch[:,:,0])
 
     Y_batch = np.expand_dims(Y_batch, axis=-1)
-    mask = np.expand_dims(mask, axis=-1)
     return X_batch, Y_batch, mask
 
 
 def train_vanilla_seq2seq(model, params):
-    '''
-    Trains 'Vanilla' Seq2seq model.
-    To facilitate training, each time series (dataset row) is loaded and processed to a
-    2D array for RNNs, then a batch of size params['batch_size'] is sampled randomly from it.
-    This trick doesn't train the model on all dataset on a single epoch, but allows it to be
-    fed with data from all Train set in reasonable amounts of time.
-    Acutal training step is under a @tf.funcion decorator; this reduced the whole train
-    step to a tensorflow op, to speed up training.
-    History vectors for Training and Validation loss are pickled to /saved_models/ folder.
-    '''
     import time
     import numpy as np
     import tensorflow as tf
     import tensorflow.keras.backend as K
 
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
-    # loss = tf.keras.losses.MeanAbsoluteError()
 
     @tf.function
     def train_on_batch(X_batch, Y_batch, mask):
+        mask = tf.expand_dims(mask, axis=-1)
+
         with tf.GradientTape() as tape:
-            # current_loss = loss(Y_batch, model(X_batch))
             current_loss = tf.reduce_mean(tf.math.abs(
                 tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
         gradients = tape.gradient(current_loss, model.trainable_variables)
@@ -93,7 +82,7 @@ def train_vanilla_seq2seq(model, params):
             # fetch batch by filenames index and train
             batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
             X_batch, Y_batch, mask = process_series(batch, params)
-            
+
             current_loss = train_on_batch(X_batch, Y_batch, mask)
 
             # Save and print progress each 50 training steps
@@ -102,6 +91,7 @@ def train_vanilla_seq2seq(model, params):
                 batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
                 X_batch, Y_batch, mask = process_series(batch, params)
 
+                mask = np.expand_dims(mask, axis=-1)
                 validation_loss = tf.reduce_mean(tf.math.abs(
                     tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
 
@@ -117,14 +107,6 @@ def train_vanilla_seq2seq(model, params):
 
 
 def train_GAN(generator, discriminator, params):
-    '''
-    This function trains a pure Generative Adversarial Network.
-    The main differences between a canonical GAN (as formulated by Goodfellow [2014]) and the one
-    implemented here is that the generation (imputation) produced doesn't stem from pure Gaussian
-    noise, but from artificially deteriorated trends. A randomic and an 'epistemic' component
-    coexist therefore.
-    Discriminator's accuracy metrics at the bottom is expressed as the only fake-detecting accuracy.
-    '''
     import time
     import numpy as np
     import tensorflow as tf
@@ -157,17 +139,20 @@ def train_GAN(generator, discriminator, params):
         return loss_fakes + loss_reals
 
     @tf.function
-    def train_step(X_batch, real_example):
+    def train_step(X_batch, real_example, mask):
         with tf.GradientTape() as generator_tape, tf.GradientTape() as discriminator_tape:
 
             generator_imputation = generator(X_batch)
+
+            # that's complex: it prepares an imputed batch for the Discriminator. It removes the first
+            # variable (at [:,:,0]) that is the deteriorated trend, and puts the imputation made by the Generator
+            generator_imputation = tf.concat([ generator_imputation, X_batch[:,:,1:] ], axis=-1)
 
             discriminator_guess_fakes = discriminator(generator_imputation)
             discriminator_guess_reals = discriminator(real_example)
 
             generator_current_loss = generator_loss(discriminator_guess_fakes)
             discriminator_current_loss = discriminator_loss(discriminator_guess_reals, discriminator_guess_fakes)
-
         generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
         dicriminator_gradient = discriminator_tape.gradient(discriminator_current_loss, discriminator.trainable_variables)
 
@@ -198,31 +183,41 @@ def train_GAN(generator, discriminator, params):
 
             # fetch batch by filenames index and train
             batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            X_batch, Y_batch = process_series(batch, params)
+            X_batch, Y_batch, mask = process_series(batch, params)
+
+            # BP()
 
             # Load another series of real observations ( this block is a subset of process_series() )
             real_example = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(),  np.random.choice(np.delete(X_files, iteration))))
             real_example = tools.RNN_multivariate_processing(array=real_example, len_input=params['len_input'])
             sample = np.random.choice(real_example.shape[0], size=np.min([real_example.shape[0], params['batch_size']]), replace=False)
             real_example = real_example[sample,:,:]
-            real_example = np.expand_dims(real_example, axis=-1)
+            # real_example = np.expand_dims(real_example, axis=-1)
 
-            generator_current_loss, discriminator_current_loss = train_step(X_batch, real_example)
+            generator_current_loss, discriminator_current_loss = train_step(X_batch, real_example, mask)
 
             if iteration % 100 == 0:
-                # To get Generative and Aversarial Losses (and binary accuracy)
-                generator_imputation = generator(X_batch)
-                discriminator_guess_reals = discriminator(real_example)
-                discriminator_guess_fakes = discriminator(generator_imputation)
 
                 # Check Imputer's plain Loss on training example
-                train_loss = MAE(batch, generator(deteriorated))
+                generator_imputation = generator(X_batch)
+                train_loss = tf.reduce_mean(tf.math.abs(
+                    tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)
+                ))
+
+                # get Generative and Aversarial Losses (and binary accuracy)
+                generator_imputation = tf.concat([ generator_imputation, X_batch[:,:,1:] ], axis=-1)
+                discriminator_guess_fakes = discriminator(generator_imputation)
+                discriminator_guess_reals = discriminator(real_example)
 
                 # Add imputation Loss on Validation data
                 v_file = np.random.choice(V_files)
                 batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
-                X_batch, Y_batch = process_series(batch, params)
-                val_loss = MAE(Y_batch, generator(X_batch))
+                X_batch, Y_batch, mask = process_series(batch, params)
+                generator_imputation = generator(X_batch)
+                # generator_imputation = tf.concat([ generator_imputation, X_batch[:,:,1:] ], axis=-1)
+                val_loss = tf.reduce_mean(tf.math.abs(
+                    tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)
+                ))
 
                 print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})   \tTime: {}ss'.format(
                     epoch, iteration,
