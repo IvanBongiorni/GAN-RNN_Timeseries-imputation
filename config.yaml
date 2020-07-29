@@ -1,41 +1,40 @@
 # MAIN
-model_name: 'pgan_00'
+model_name: 'prova_vanilla_seq2seq'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
-model_type: 3
+model_type: 1
 use_gpu: True
 # After training, load Test data and check test loss
 check_test_performance: False
 
-
 # MODEL HYPERPARAMETERS
-seed: 123
+# seed: 123
 val_test_ratio: [0.06, 0.06]
 # Use subset of Train data for each epoch - if None use all
 # train_size_per_epoch: None #50000
 n_epochs: 1
 batch_size: 64
-learning_rate: 0.0001
+learning_rate: 0.001
 shuffle: True
 
 len_input: 128
 
-encoder_lstm_units: 50
+encoder_lstm_units: 64
 
 kernel_size: 3
-conv_filters: [8, 16]
+conv_filters: 32
 conv_activation: 'elu'
 conv_initializer: 'he_normal'
-use_batchnorm: True
-conv_dropout: 0.1
+use_batchnorm: False
+# conv_dropout: 0.1
 
-decoder_dense_units: 50
-decoder_dense_activation: 'elu'
+decoder_dense_units: 64
+# decoder_dense_activation: 'elu'
 decoder_output_activation: 'relu'
 decoder_dense_initializer: 'he_normal'
-decoder_dense_dropout: 0.1
+# decoder_dense_dropout: 0.1
 
 # GAN HYPERPARAMETERS
 save_discriminator: True
@@ -45,7 +44,7 @@ loss_weight: 0.85
 
 # DETERIORATION PARAMETERS
 # ratio of total NaN's at each deterioration
-total_nan_range: [0.12, 0.25]
+total_nan_share: 0.2
 # probability of random noise vs interval noise
 prob_noise: 0.25
 # what value to be fed instead of NaN

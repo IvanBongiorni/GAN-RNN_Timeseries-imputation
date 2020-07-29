@@ -9,6 +9,7 @@ builds model (either vanilla or GAN) and trains it, checks loss on test data.
 """
 
 import os
+import tensorflow as tf
 # 0 = all messages are logged (default behavior)
 # 1 = INFO messages are not printed
 # 2 = INFO and WARNING messages are not printed
@@ -26,44 +27,16 @@ def main():
     import tensorflow as tf
 
     # local modules
-    import model, train, holdout
+    import model, train, tools, holdout
 
     print('Loading configuration parameters.')
-    params = yaml.load( open(os.getcwd() + '/config.yaml'), yaml.Loader )
+    params = yaml.load(open(os.getcwd() + '/config.yaml'), yaml.Loader)
+    # Fix number of NaN's to speed up training
+    params['size_nan'] = int(params['len_input']*params['total_nan_share'])
 
-    print('Setting GPU configurations.')
-    ### Sets GPU configurations
-    if params['use_gpu']:
-        # This prevents CuDNN 'Failed to get convolution algorithm' error
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        if gpus:
-            try:
-                # Currently, memory growth needs to be the same across GPUs
-                for gpu in gpus:
-                    tf.config.experimental.set_memory_growth(gpu, True)
-                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            except RuntimeError as e:
-                # Memory growth must be set before GPUs have been initialized
-                print(e)
-
-        # To see list of allocated tensors in case of OOM
-        tf.compat.v1.RunOptions(report_tensor_allocations_upon_oom = True)
-
-    else:
-        try:
-            # Disable all GPUs
-            tf.config.set_visible_devices([], 'GPU')
-            visible_devices = tf.config.get_visible_devices()
-            for device in visible_devices:
-                assert device.device_type != 'GPU'
-        except:
-            print('Invalid device or cannot modify virtual devices once initialized.')
-        pass
-
+    tools.set_gpu_configurations(params)
 
     print('\nStart Training Pipeline.\n')
-
     if params['model_type'] == 1:
         # If the model already exists load it, otherwise make a new one
         if params['model_name']+'.h5' in os.listdir( os.getcwd() + '/saved_models/' ):

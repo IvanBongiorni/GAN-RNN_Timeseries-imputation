@@ -32,7 +32,7 @@ Scripts:
 
 Notebooks and explanations:
 - `how_it_works.md`: contains explanation of Deep Learning models in greater detail.
-- `performance_comparison.ipynb`: visualization of models' performance ( work in progress ).
+- `imputation_visual_check.ipynb`: visualization of a models performance. The notebook loads the trained model specified in `params['model_name']` and check its performance on Validation and Test data.
 - `data_scaling_exploration.ipynb`: contains visualizations of the scaling function I employed in data preprocessing phase.
 - `nan_exploration.ipynb`: contains a study of the distribution of NaN's in the raw dataset, that lead to the development of the deterioration function.
 
