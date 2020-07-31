@@ -191,7 +191,7 @@ def train_GAN(generator, discriminator, params):
             real_example = real_example[sample,:,:]
             # real_example = np.expand_dims(real_example, axis=-1)
 
-            generator_current_loss, discriminator_current_loss = train_step(X_batch, real_example, mask)
+            generator_current_loss, discriminator_current_loss = train_step(X_batch, real_example)
 
             if iteration % 100 == 0:
 
