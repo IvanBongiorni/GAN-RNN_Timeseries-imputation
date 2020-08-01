@@ -269,11 +269,20 @@ def train_partial_GAN(generator, discriminator, params):
             g_loss_mae = tf.reduce_mean(tf.math.abs(
                 tf.math.multiply(generator(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
             g_loss_gan = cross_entropy(tf.ones_like(discriminator_guess_fakes), discriminator_guess_fakes)
+
+            # tf.print('mae:', g_loss_mae, '; gan:', g_loss_gan)
+
             generator_current_loss = g_loss_mae + (g_loss_gan * w)  # magnitude of GAN loss to be adjusted
 
-            # Disccriminator loss
-            d_loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
-            d_loss_reals = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
+            # Disccriminator loss - Label smoothing
+            # d_loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
+            # d_loss_reals = cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
+            loss_fakes = cross_entropy(
+                tf.random.uniform(shape=tf.shape(discriminator_guess_fakes), minval=0.0, maxval=0.2), discriminator_guess_fakes
+            )
+            loss_reals = cross_entropy(
+                tf.random.uniform(shape=tf.shape(discriminator_guess_reals), minval=0.8, maxval=1), discriminator_guess_reals
+            )
             discriminator_current_loss = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes) + cross_entropy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)
 
         generator_gradient = generator_tape.gradient(generator_current_loss, generator.trainable_variables)
