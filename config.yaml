@@ -1,10 +1,10 @@
 # MAIN
-model_name: 'prova_vanilla_seq2seq'
+model_name: 'pgan_00'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
-model_type: 1
+model_type: 3
 use_gpu: True
 # After training, load Test data and check test loss
 check_test_performance: False
@@ -39,7 +39,7 @@ decoder_dense_initializer: 'he_normal'
 # GAN HYPERPARAMETERS
 save_discriminator: True
 # weight for Imputer Loss in partially adversarial training: [ MAE_Loss * w + GAN_Loss * (1-w) ]
-loss_weight: 0.85
+loss_weight: 0.05
 
 
 # DETERIORATION PARAMETERS
