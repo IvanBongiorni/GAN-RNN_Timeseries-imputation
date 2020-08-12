@@ -63,7 +63,7 @@ Conv layers are supposed to alleviate this problem, in a way similar to what Att
 Since many variables must be processed and combined, I stacked multiple Conv layers.
 The outputs of the LSTM and 1D Conv layers are then stacked together and fed into the Decoder, that performs the final imputation.
 
-In case of GAN models, I simply replicated all the Generators' architecture for the Discriminator. The only difference lies in the output nodes: the LSTM Decoder's output is fed into a Dense layer with one node and Sigmoid activation, working as a switch for its binary classification purpose.
+In case of **GAN** models, I simply replicated all the Generators' architecture for the Discriminator. The only difference lies in the output nodes: the LSTM Decoder's output is fed into a Dense layer with one node and Sigmoid activation, working as a switch for its binary classification purpose.
 
 ### Loss function
 The basic **Seq2seq** model is trained with a "masked" regression Loss.
@@ -71,7 +71,7 @@ During training, artificial deterioration is produced from a randomly generated 
 This mask metrix contains 1's where the trend is deteriorated (i.e. where a missing value happens) and 0's where data remain intect.
 La Loss dell'imputer prende dunque questa forma:
 
-![image](./utils/loss_formula_seq2seq.png)
+![image](utils/loss_formula_seq2seq.png "Seq2seq loss")
 
 This mask serve a far si che il modello impari solo a riempire i buchi nel trend, e non a ricostruire tutto il trend in generale.
 
@@ -80,7 +80,7 @@ In the case of a simple **GAN**, instead, the Loss is a canonical Binary Cross-E
 More interesting is the case of the **Seq2seq model with partially adversarial training**.
 In this case the Imputer (now defined as a GAN Generator) is trained on a Loss that combines the previous two, and defined as follows:
 
-![image](./utils/loss_formula_pgan.png)
+![image](utils/loss_formula_pgan.png "Partial GAN loss")
 
 This function is composed by a *regression component*, calculated as Mean Absolute Error (MAE), and a *classification*, or *adversarial component*, calculated as Binary Cross-Entropy (BCE).
 Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight hyperparameter is used to shrink its impact.
