@@ -2,8 +2,8 @@ Author: **Ivan Bongiorni**, Data Scientist. [LinkedIn](https://www.linkedin.com/
 
 # Convolutional Recurrent Seq2seq GAN for the Imputation of Missing Values in Time Series Data
 
-<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/imputation_example_00.png" align="center" height="204" width="600" ></a>
-<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/imputation_example_01.png" align="center" height="204" width="600" ></a>
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/imputation_example_00.png" align="center" height="204" width="800" ></a>
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/imputation_example_01.png" align="center" height="204" width="800" ></a>
 
 ## Description
 
@@ -53,6 +53,24 @@ scipy==1.4.1
 tensorflow==2.1.0
 ```
 
-## Hardware
+## Bibliography
+- *Luo, Y., Cai, X., Zhang, Y., & Xu, J. (2018). Multivariate time series imputation with generative adversarial networks. In Advances in Neural Information Processing Systems (pp. 1596-1607).*
+- *Yoon, J., Jordon, J., & Van Der Schaar, M. (2018). Gain: Missing data imputation using generative adversarial nets. arXiv preprint arXiv:1806.02920.*
+- *Guo, Z., Wan, Y., & Ye, H. (2019). A data imputation method for multivariate time series based on generative adversarial network. Neurocomputing, 360, 185-197.*
+- *Liu, Y., Yu, R., Zheng, S., Zhan, E., & Yue, Y. (2019). NAOMI: Non-autoregressive multiresolution sequence imputation. In Advances in Neural Information Processing Systems (pp. 11238-11248).*
+- *Luo, Y., Zhang, Y., Cai, X., & Yuan, X. (2019, August). E2GAN: End-to-End Generative Adversarial Network for Multivariate Time Series Imputation. In Proceedings of the 28th International Joint Conference on Artificial Intelligence (pp. 3094-3100). AAAI Press.*
+- *Suo, Q., Yao, L., Xun, G., Sun, J., & Zhang, A. (2019, June). Recurrent Imputation for Multivariate Time Series with Missing Values. In 2019 IEEE International Conference on Healthcare Informatics (ICHI) (pp. 1-3). IEEE.*
+- *Tang, X., Yao, H., Sun, Y., Aggarwal, C. C., Mitra, P., & Wang, S. (2020). Joint Modeling of Local and Global Temporal Dynamics for Multivariate Time Series Forecasting with Missing Values. In AAAI (pp. 5956-5963).*
+- *Zhang, J., Mu, X., Fang, J., & Yang, Y. (2019). Time Series Imputation via Integration of Revealed Information Based on the Residual Shortcut Connection. IEEE Access, 7, 102397-102405.*
+- *Fortuin, V., Baranchuk, D., Rätsch, G., & Mandt, S. (2020, June). GP-VAE: Deep Probabilistic Time Series Imputation. In International Conference on Artificial Intelligence and Statistics (pp. 1651-1661).*
+- *Huang, T., Chakraborty, P., & Sharma, A. (2020). Deep convolutional generative adversarial networks for traffic data imputation encoding time series as images. arXiv preprint arXiv:2005.04188.*
+- *Huang, Y., Tang, Y., VanZwieten, J., & Liu, J. (2020). Reliable machine prognostic health management in the presence of missing data. Concurrency and Computation: Practice and Experience, e5762.*
+- *Jun, E., Mulyadi, A. W., Choi, J., & Suk, H. I. (2020). Uncertainty-Gated Stochastic Sequential Model for EHR Mortality Prediction. arXiv preprint arXiv:2003.00655.*
+- *Qi, M., Qin, J., Wu, Y., & Yang, Y. (2020). Imitative Non-Autoregressive Modeling for Trajectory Forecasting and Imputation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 12736-12745).*
+- *Wang, Y., Menkovski, V., Wang, H., Du, X., & Pechenizkiy, M. (2020). Causal Discovery from Incomplete Data: A Deep Learning Approach. arXiv preprint arXiv:2001.05343.*
+- *Yi, J., Lee, J., Kim, K. J., Hwang, S. J., & Yang, E. (2019). Why Not to Use Zero Imputation? Correcting Sparsity Bias in Training Neural Networks. arXiv preprint arXiv:1906.00150.*
+- *Yoon, S., & Sull, S. (2020). GAMIN: Generative Adversarial Multiple Imputation Network for Highly Missing Data. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 8456-8464).*
 
+
+## Hardware
 I trained this model on a fairly powerful machine: a System76 Adder WS laptop with 64 GB of RAM and NVidia RTX 2070 GPU.
