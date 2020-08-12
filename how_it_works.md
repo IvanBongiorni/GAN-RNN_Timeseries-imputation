@@ -78,11 +78,11 @@ This artificial deterioration is applied randomly from `deterioration.py`, and c
 The basic **Seq2seq** model is trained with a "masked" regression Loss.
 During training, artificial deterioration is produced from a randomly generated *mask matrix* ![M](https://latex.codecogs.com/gif.latex?M).
 This mask matrix contains 1's where the trend is deteriorated (i.e. where a missing value happens) and 0's where data remain intect.
-The Imputer, or generator ![G](https://latex.codecogs.com/gif.latex?G)'s Loss takes, for each batch ![X_i](https://latex.codecogs.com/gif.latex?X_i), the following form:
+The Imputer, or Generator ![G](https://latex.codecogs.com/gif.latex?G)'s Loss takes, for each artificially deteriorated batch ![X_i](https://latex.codecogs.com/gif.latex?X_i) and its true counterpart ![Y_i](https://latex.codecogs.com/gif.latex?Y_i), the following form:
 
 ![image](utils/loss_formula_seq2seq.png "Seq2seq regression loss")
 
-Where ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r) is a plain regression Loss defined as Mean Absolute Error.
+where ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r) is a plain regression Loss defined as Mean Absolute Error.
 The purpose of each ![M_{i}](https://latex.codecogs.com/gif.latex?M_{i}) is to make sure the model only learns to "fill the holes" in the input trend, instead of reconstructing a whole time series in general.
 
 In the case of a simple **GAN**, instead, the Loss is a canonical Binary Cross-Entropy (BCE).
@@ -92,6 +92,7 @@ In this case the Imputer (now defined as a GAN Generator) is trained on a Loss t
 
 ![image](utils/loss_formula_pgan.png "Partial GAN loss")
 
+where ![G](https://latex.codecogs.com/gif.latex?G) is the Imputer-Generator and ![D](https://latex.codecogs.com/gif.latex?D) is the Discriminator.
 This function is composed by a *regression component* ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r), calculated as above as Mean Absolute Error (MAE), and a *classification*, or *adversarial component* ![\mathcal{L}^c](https://latex.codecogs.com/gif.latex?\mathcal{L}^c), calculated as Binary Cross-Entropy (BCE).
 Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight hyperparameter ![\lambda](https://latex.codecogs.com/gif.latex?\lambda) is used to shrink its impact.
 
