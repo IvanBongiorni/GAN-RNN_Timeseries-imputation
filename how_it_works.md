@@ -67,6 +67,13 @@ The outputs of the LSTM and 1D Conv layers are then stacked together and fed int
 In case of **GAN** models, I simply replicated all the Generators' architecture for the Discriminator. The only difference lies in the output nodes: the LSTM Decoder's output is fed into a Dense layer with one node and Sigmoid activation, working as a switch for its binary classification purpose.
 
 
+
+## 4. Training
+
+After running data pre-processing pipeline through `main_processing.py`, every Training, Validation and Test observation is stored on hard disk as a separate file. During training, to be launched from `main_train.py`, the script from `train.py` takes a trend and processes it, turning into a 3D matrix as explained above, and applying an artificial deterioration to the input batch.
+
+This artificial deterioration is applied randomly from `deterioration.py`, and consists of inserting missing values into the input batch. Their generation is explained in more detail in  After a given share of datapoints in the trend have been turned `NaN`'s, a **placeholder value** is added in their place. The choice of the placeholder value in relation with the choice of activation function is extremely important: the placeholder must tell the network where the data to be impute are, and therefore must be locate outside the meaningful range of my dataset. Since web traffic cannot possibly be lower than zero, I had to chose a placeholder values that was outiside the `[0, infinite]` range, and pair it with an activation function that is able to react to that peculiar value. Clearly, classical ReLU is not feasible, since any negative number passing through it will be flattened to zero. I then chose **ELU** activation, together with a placeholder of `-0.1`. In that way, a neural network is able to recognize what are the values to be substituted (imputed) during training.
+
 #### Loss function
 The basic **Seq2seq** model is trained with a "masked" regression Loss.
 During training, artificial deterioration is produced from a randomly generated *mask matrix*.
@@ -88,13 +95,6 @@ In this case the Imputer (now defined as a GAN Generator) is trained on a Loss t
 This function is composed by a *regression component* ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r), calculated as above as Mean Absolute Error (MAE), and a *classification*, or *adversarial component* ![\mathcal{L}^c](https://latex.codecogs.com/gif.latex?\mathcal{L}^c), calculated as Binary Cross-Entropy (BCE).
 Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight hyperparameter ![\lambda](https://latex.codecogs.com/gif.latex?\lambda) is used to shrink its impact.
 
-
-
-## 4. Training
-
-After running data pre-processing pipeline through `main_processing.py`, every Training, Validation and Test observation is stored on hard disk as a separate file. During training, to be launched from `main_train.py`, the script from `train.py` takes a trend and processes it, turning into a 3D matrix as explained above, and applying an artificial deterioration to the input batch.
-
-This artificial deterioration is applied randomly from `deterioration.py`, and consists of inserting missing values into the input batch. Their generation is explained in more detail in  After a given share of datapoints in the trend have been turned `NaN`'s, a **placeholder value** is added in their place. The choice of the placeholder value in relation with the choice of activation function is extremely important: the placeholder must tell the network where the data to be impute are, and therefore must be locate outside the meaningful range of my dataset. Since web traffic cannot possibly be lower than zero, I had to chose a placeholder values that was outiside the `[0, infinite]` range, and pair it with an activation function that is able to react to that peculiar value. Clearly, classical ReLU is not feasible, since any negative number passing through it will be flattened to zero. I then chose **ELU** activation, together with a placeholder of `-0.1`. In that way, a neural network is able to recognize what are the values to be substituted (imputed) during training.
 
 
 
