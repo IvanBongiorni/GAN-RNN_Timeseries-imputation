@@ -53,7 +53,7 @@ I will first explain the architecture of the plain, Vanilla **seq2seq model**, s
 
 It is a Seq2seq Neural Network, with an Encoder part that is both recurrent and convolutional, and a fully recurrent Decoder.
 
-![image](./utils/seq2seq_architecture.png)
+<a href="url"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/seq2seq_architecture.png" align="center" height="640" width="480" ></a>
 
 The goal of the Encoder is to process the input signal. I assumed the LSTM layer (provided with a much higher number of parameters) would have done most of the job, with 1D Conv layer working as a support architecture.
 I thought them as something similar to *skip connections*, that allow simpler signals to flow through the nodes of the Network more directly.
@@ -65,11 +65,12 @@ The outputs of the LSTM and 1D Conv layers are then stacked together and fed int
 
 In case of **GAN** models, I simply replicated all the Generators' architecture for the Discriminator. The only difference lies in the output nodes: the LSTM Decoder's output is fed into a Dense layer with one node and Sigmoid activation, working as a switch for its binary classification purpose.
 
+
 ### Loss function
 The basic **Seq2seq** model is trained with a "masked" regression Loss.
 During training, artificial deterioration is produced from a randomly generated *mask matrix*.
 This mask metrix contains 1's where the trend is deteriorated (i.e. where a missing value happens) and 0's where data remain intect.
-La Loss dell'imputer prende dunque questa forma:
+Imputer's takes thus this form:
 
 ![image](utils/loss_formula_seq2seq.png "Seq2seq loss")
 
