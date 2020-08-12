@@ -1,9 +1,9 @@
+Author: **Ivan Bongiorni**, Data Scientist. [LinkedIn](https://www.linkedin.com/in/ivan-bongiorni-b8a583164/).
+
 # Convolutional Recurrent Seq2seq GAN for the Imputation of Missing Values in Time Series Data
 
-----
-
-Author: Ivan Bongiorni. [LinkedIn](https://www.linkedin.com/in/ivan-bongiorni-b8a583164/).
-
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/imputation_example_00.png" align="center" height="204" width="600" ></a>
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/imputation_example_01.png" align="center" height="204" width="600" ></a>
 
 ## Description
 
