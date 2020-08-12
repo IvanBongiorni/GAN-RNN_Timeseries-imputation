@@ -53,7 +53,7 @@ I will first explain the architecture of the plain, Vanilla **seq2seq model**, s
 
 It is a Seq2seq Neural Network, with an Encoder part that is both recurrent and convolutional, and a fully recurrent Decoder.
 
-<a href="url"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/seq2seq_architecture.png" align="center" height="640" width="480" ></a>
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/seq2seq_architecture.png" align="center" height="640" width="480" ></a>
 
 The goal of the Encoder is to process the input signal. I assumed the LSTM layer (provided with a much higher number of parameters) would have done most of the job, with 1D Conv layer working as a support architecture.
 I thought them as something similar to *skip connections*, that allow simpler signals to flow through the nodes of the Network more directly.
@@ -70,11 +70,12 @@ In case of **GAN** models, I simply replicated all the Generators' architecture 
 The basic **Seq2seq** model is trained with a "masked" regression Loss.
 During training, artificial deterioration is produced from a randomly generated *mask matrix*.
 This mask metrix contains 1's where the trend is deteriorated (i.e. where a missing value happens) and 0's where data remain intect.
-Imputer's takes thus this form:
+Imputer's Loss takes, for each trend ![i](https://latex.codecogs.com/gif.latex?i), the following form:
 
-![image](utils/loss_formula_seq2seq.png "Seq2seq loss")
+![image](utils/loss_formula_seq2seq.png "Seq2seq regression loss")
 
-This mask serve a far si che il modello impari solo a riempire i buchi nel trend, e non a ricostruire tutto il trend in generale.
+Where ![\mathcal{L}^G_i](https://latex.codecogs.com/gif.latex?\mathcal{L}^G_i) is a plain regression Loss defined as Mean Absolute Error.
+The purpose of the mask matrix ![M_{i}](https://latex.codecogs.com/gif.latex?M_{i}) is to make sure the model only learns to "fill the holes" in the input trend, instead of reconstructing a whole time series in general.
 
 In the case of a simple **GAN**, instead, the Loss is a canonical Binary Cross-Entropy (BCE).
 
