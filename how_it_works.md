@@ -2,15 +2,16 @@ Author: [Ivan Bongiorni](https://www.linkedin.com/in/ivan-bongiorni-b8a583164/) 
 
 # Convolutional Recurrent Seq2seq with Adversarial Training for Missing Data Imputation of Time Series
 Summary:
-- The dataset
-- Data processing
-- How the models work
-- Bibliography
+1. The dataset
+2. Data processing
+3. Models' architecture
+4. Training
+5. Bibliography
 ---
 
 
 
-## The dataset
+## 1. The dataset
 The Kaggle's Wikipedia [Web Traffic Time Series Forecasting](https://www.kaggle.com/c/web-traffic-time-series-forecasting) dataset contains ~145.000 time series on Wikipedia web traffic.
 Its trends report daily visits to each web page.
 While the main goal of the official Kaggle competition was to forecast future web traffic; this GitHub project can be thought as a spin-off (or maybe, a sequel) of that.
@@ -18,7 +19,7 @@ It is an effort of solving a major missing data problem that needs to be taken c
 
 
 
-## Data processing
+## 2. Data processing
 RNN layers require an input with shape:
 
 `( number of observations , length of input sequences , number of variables )`
@@ -47,7 +48,7 @@ Therefore, I needed to test my model's ability to imput data from trends it had 
 
 
 
-## Models architecture
+## 3. Models' architecture
 
 I will first explain the architecture of the plain, Vanilla **seq2seq model**, since it constitutes the Generator in GAN models as well.
 
@@ -66,7 +67,7 @@ The outputs of the LSTM and 1D Conv layers are then stacked together and fed int
 In case of **GAN** models, I simply replicated all the Generators' architecture for the Discriminator. The only difference lies in the output nodes: the LSTM Decoder's output is fed into a Dense layer with one node and Sigmoid activation, working as a switch for its binary classification purpose.
 
 
-### Loss function
+#### Loss function
 The basic **Seq2seq** model is trained with a "masked" regression Loss.
 During training, artificial deterioration is produced from a randomly generated *mask matrix*.
 This mask metrix contains 1's where the trend is deteriorated (i.e. where a missing value happens) and 0's where data remain intect.
@@ -89,7 +90,7 @@ Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight
 
 
 
-## Training
+## 4. Training
 
 After running data pre-processing pipeline through `main_processing.py`, every Training, Validation and Test observation is stored on hard disk as a separate file. During training, to be launched from `main_train.py`, the script from `train.py` takes a trend and processes it, turning into a 3D matrix as explained above, and applying an artificial deterioration to the input batch.
 
@@ -97,7 +98,7 @@ This artificial deterioration is applied randomly from `deterioration.py`, and c
 
 
 
-## Bibliography
+## 5. Bibliography
 - *Luo, Y., Cai, X., Zhang, Y., & Xu, J. (2018). Multivariate time series imputation with generative adversarial networks. In Advances in Neural Information Processing Systems (pp. 1596-1607).*
 - *Yoon, J., Jordon, J., & Van Der Schaar, M. (2018). Gain: Missing data imputation using generative adversarial nets. arXiv preprint arXiv:1806.02920.*
 - *Guo, Z., Wan, Y., & Ye, H. (2019). A data imputation method for multivariate time series based on generative adversarial network. Neurocomputing, 360, 185-197.*
