@@ -74,7 +74,7 @@ Imputer's Loss takes, for each trend ![i](https://latex.codecogs.com/gif.latex?i
 
 ![image](utils/loss_formula_seq2seq.png "Seq2seq regression loss")
 
-Where ![\mathcal{L}^G_i](https://latex.codecogs.com/gif.latex?\mathcal{L}^G_i) is a plain regression Loss defined as Mean Absolute Error.
+Where ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r) is a plain regression Loss defined as Mean Absolute Error.
 The purpose of the mask matrix ![M_{i}](https://latex.codecogs.com/gif.latex?M_{i}) is to make sure the model only learns to "fill the holes" in the input trend, instead of reconstructing a whole time series in general.
 
 In the case of a simple **GAN**, instead, the Loss is a canonical Binary Cross-Entropy (BCE).
@@ -84,8 +84,8 @@ In this case the Imputer (now defined as a GAN Generator) is trained on a Loss t
 
 ![image](utils/loss_formula_pgan.png "Partial GAN loss")
 
-This function is composed by a *regression component*, calculated as Mean Absolute Error (MAE), and a *classification*, or *adversarial component*, calculated as Binary Cross-Entropy (BCE).
-Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight hyperparameter is used to shrink its impact.
+This function is composed by a *regression component* ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r), calculated as above as Mean Absolute Error (MAE), and a *classification*, or *adversarial component* ![\mathcal{L}^c](https://latex.codecogs.com/gif.latex?\mathcal{L}^c), calculated as Binary Cross-Entropy (BCE).
+Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight hyperparameter ![\lambda](https://latex.codecogs.com/gif.latex?\lambda) is used to shrink its impact.
 
 
 
