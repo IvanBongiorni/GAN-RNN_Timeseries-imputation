@@ -21,21 +21,32 @@ import deterioration
 import tools
 
 
-def process_series(batch, params):
+def process_series(x, params):
     import numpy as np
     import deterioration, tools  # local imports
 
-    X_batch = tools.RNN_multivariate_processing(array=batch, len_input=params['len_input'])
-    sample = np.random.choice(X_batch.shape[0], size=np.min([X_batch.shape[0], params['batch_size']]), replace = False)
-    X_batch = X_batch[ sample,:,: ]
-    Y_batch = np.copy(X_batch[:,:,0])
-    # X_batch[:,:,0] = deterioration.apply(X_batch[:,:,0], params)
-    # X_batch[ np.isnan(X_batch) ] = params['placeholder_value']
-    mask = deterioration.mask(X_batch[:,:,0], params)
-    X_batch[:,:,0] = np.where(mask==1, params['placeholder_value'], X_batch[:,:,0])
+    x = tools.RNN_multivariate_processing(array=x, len_input=params['len_input'])
 
-    Y_batch = np.expand_dims(Y_batch, axis=-1)
-    return X_batch, Y_batch, mask
+    # For each trend, sample 1 obs. and fix shape
+    x = x[ np.random.choice(x.shape[0], replace=False) , : , : ]
+    x = np.expand_dims(x, axis=0)
+
+    y = np.copy(x[:,:,0])
+    y = np.expand_dims(y, axis=-1)
+
+    m = deterioration.mask(x[:,:,0], params)
+    x[:,:,0] = np.where(m==1, params['placeholder_value'], x[:,:,0])
+
+    # Returning a list to allow for list comprehension in train()
+    return [x, y, m]
+
+
+
+
+
+
+
+
 
 
 def train_vanilla_seq2seq(model, params):
@@ -77,24 +88,41 @@ def train_vanilla_seq2seq(model, params):
         if params['shuffle']:
             X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace=False) ]
 
-        for iteration in range(X_files.shape[0]):
+        for iteration in range(X_files.shape[0] // params['batch_size']):
             start = time.time()
 
             # fetch batch by filenames index and train
-            batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            X_batch, Y_batch, mask = process_series(batch, params)
+            start = iteration * params['batch_size']
+            batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['batch_size']] ]
+            batch = [ process_series(array, params) for array in batch ]
 
+            # Extract X, Y and Mask and stack them in final arrays
+            X_batch = [array[0] for array in batch]
+            Y_batch = [array[1] for array in batch]
+            mask = [array[2] for array in batch]
+            X_batch = np.concatenate(X_batch)
+            Y_batch = np.concatenate(Y_batch)
+            mask = np.concatenate(mask)
+
+            # Train model
             current_loss = train_on_batch(X_batch, Y_batch, mask)
 
             # Save and print progress each 50 training steps
-            if iteration % 100 == 0:
-                v_file = np.random.choice(V_files)
-                batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
-                X_batch, Y_batch, mask = process_series(batch, params)
+            if iteration % 50 == 0:
+                batch = np.random.choice(V_files, size=params['validation_batch_size'], replace=False)
+                batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['validation_batch_size']] ]
+                batch = [ process_series(array, params) for array in batch ]
+
+                # Extract X, Y and Mask and stack them in final arrays
+                X_batch = [array[0] for array in batch]
+                Y_batch = [array[1] for array in batch]
+                mask = [array[2] for array in batch]
+                X_batch = np.concatenate(X_batch)
+                Y_batch = np.concatenate(Y_batch)
+                mask = np.concatenate(mask)
 
                 mask = np.expand_dims(mask, axis=-1)
-                validation_loss = tf.reduce_mean(tf.math.abs(
-                    tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
+                validation_loss = tf.reduce_mean(tf.math.abs(tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
 
                 print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
                     epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
@@ -105,6 +133,14 @@ def train_vanilla_seq2seq(model, params):
     print('Model saved at:\n{}'.format('{}/saved_models/{}.h5'.format(os.getcwd(), params['model_name'])))
 
     return None
+
+
+
+
+
+
+
+
 
 
 def train_GAN(generator, discriminator, params):
@@ -236,6 +272,14 @@ def train_GAN(generator, discriminator, params):
         print('\nDiscriminator saved at:\n{}'.format('{}/saved_models/{}_discriminator.h5'.format(os.getcwd(), params['model_name'])))
 
     return None
+
+
+
+
+
+
+
+
 
 
 def train_partial_GAN(generator, discriminator, params):
