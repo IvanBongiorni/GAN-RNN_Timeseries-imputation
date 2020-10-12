@@ -28,7 +28,7 @@ def process_series(x, params):
     x = tools.RNN_multivariate_processing(array=x, len_input=params['len_input'])
 
     # For each trend, sample 1 obs. and fix shape
-    x = x[ np.random.choice(x.shape[0], replace=False) , : , : ]
+    x = x[ np.random.choice(x.shape[0]) , : , : ]
     x = np.expand_dims(x, axis=0)
 
     y = np.copy(x[:,:,0])
@@ -107,7 +107,7 @@ def train_vanilla_seq2seq(model, params):
             # Train model
             current_loss = train_on_batch(X_batch, Y_batch, mask)
 
-            # Save and print progress each 50 training steps
+            # Repeat processing on Validation data and print progress
             if iteration % 50 == 0:
                 batch = np.random.choice(V_files, size=params['validation_batch_size'], replace=False)
                 batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['validation_batch_size']] ]
@@ -211,46 +211,63 @@ def train_GAN(generator, discriminator, params):
 
         # Shuffle data by shuffling row index
         if params['shuffle']:
-            X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace=False) ]
+            X_files = X_files[ np.random.choice(len(X_files), len(X_files), replace=False) ]
 
-        for iteration in range(X_files.shape[0]):
+        for iteration in range(X_files.shape[0] // params['batch_size']):
             start = time.time()
 
-            # fetch batch by filenames index and train
-            batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            X_batch, Y_batch, mask = process_series(batch, params)
+            # First, sample just filenames for mini-batches
+            start = iteration * params['batch_size']
+            batch = X_files[start:start+params['batch_size']]
+            # then sample some real examples
+            real_example = np.array(list(set(X_files)-set(batch)))
+            real_example = real_example[ np.random.choice(len(V_files), size=params['validation_batch_size'], replace=False) ]
 
-            # Load another series of real observations ( this block is a subset of process_series() )
-            real_example = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(),  np.random.choice(np.delete(X_files, iteration))))
-            real_example = tools.RNN_multivariate_processing(array=real_example, len_input=params['len_input'])
-            sample = np.random.choice(real_example.shape[0], size=np.min([real_example.shape[0], params['batch_size']]), replace=False)
-            real_example = real_example[sample,:,:]
-            # real_example = np.expand_dims(real_example, axis=-1)
+            # Process raw data, extract X, Y and Mask and stack them in final arrays
+            batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
+            batch = [ process_series(array, params) for array in batch ]
+            X_batch = [array[0] for array in batch]
+            Y_batch = [array[1] for array in batch]
+            mask = [array[2] for array in batch]
+            X_batch = np.concatenate(X_batch)
+            Y_batch = np.concatenate(Y_batch)
+            mask = np.concatenate(mask)
+
+            # For reals, you don't need x-y split and mask, therefore replicate only part of process_series()
+            real_example = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in real_example ]
+            real_example = [ tools.RNN_multivariate_processing(array, len_input=params['len_input']) for array in real_example ]
+            real_example = [ array[ np.random.choice(array.shape[0]) , : , : ] for array in real_example ]
+            real_example = [ np.expand_dims(array, axis=0) for array in real_example ]
+            real_example = np.concatenate(real_example)
 
             generator_current_loss, discriminator_current_loss = train_step(X_batch, real_example)
 
-            if iteration % 100 == 0:
+            # Repeat processing on Validation data and print progress
+            if iteration % 50 == 0:
 
                 # Check Imputer's plain Loss on training example
                 generator_imputation = generator(X_batch)
-                train_loss = tf.reduce_mean(tf.math.abs(
-                    tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)
-                ))
+                train_loss = tf.reduce_mean(tf.math.abs(tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)))
 
                 # get Generative and Aversarial Losses (and binary accuracy)
                 generator_imputation = tf.concat([ generator_imputation, X_batch[:,:,1:] ], axis=-1)
                 discriminator_guess_fakes = discriminator(generator_imputation)
                 discriminator_guess_reals = discriminator(real_example)
 
-                # Add imputation Loss on Validation data
-                v_file = np.random.choice(V_files)
-                batch = np.load( '{}/data_processed/Validation/{}'.format(os.getcwd(), v_file) )
-                X_batch, Y_batch, mask = process_series(batch, params)
+                # Extract X, Y and Mask and stack them in final arrays
+                batch = np.random.choice(V_files, size=params['validation_batch_size'], replace=False)
+                batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['validation_batch_size']] ]
+                batch = [ process_series(array, params) for array in batch ]
+
+                X_batch = [array[0] for array in batch]
+                Y_batch = [array[1] for array in batch]
+                mask = [array[2] for array in batch]
+                X_batch = np.concatenate(X_batch)
+                Y_batch = np.concatenate(Y_batch)
+                mask = np.concatenate(mask)
+
                 generator_imputation = generator(X_batch)
-                # generator_imputation = tf.concat([ generator_imputation, X_batch[:,:,1:] ], axis=-1)
-                val_loss = tf.reduce_mean(tf.math.abs(
-                    tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)
-                ))
+                val_loss = tf.reduce_mean(tf.math.abs(tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)))
 
                 print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})   \tTime: {}ss'.format(
                     epoch, iteration,
