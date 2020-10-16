@@ -1,10 +1,10 @@
 # MAIN
-model_name: 'pgan_00'
+model_name: 'rebatch_1_00'
 # Model types:
     # 1: Vanilla seq2seq
     # 2: GAN
     # 3: Seq2seq with partially adversarial training
-model_type: 3
+model_type: 1
 use_gpu: True
 # After training, load Test data and check test loss
 check_test_performance: False
@@ -16,6 +16,7 @@ val_test_ratio: [0.06, 0.06]
 # train_size_per_epoch: None #50000
 n_epochs: 1
 batch_size: 64
+validation_batch_size: 64
 learning_rate: 0.001
 shuffle: True
 
