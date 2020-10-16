@@ -367,19 +367,9 @@ def train_partial_GAN(generator, discriminator, params):
         if params['shuffle']:
             X_files = X_files[ np.random.choice(len(X_files), len(X_files), replace=False) ]
 
-        for iteration in range(X_files.shape[0]):
+        for iteration in range(X_files.shape[0] // params['batch_size']):
         # for iteration in range( int(X_files.shape[0] * 0.1) ):      ### TEMPORARY TEST
             start = time.time()
-
-            # # fetch batch by filenames index and train
-            # batch = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), X_files[iteration]) )
-            # X_batch, Y_batch, mask = process_series(batch, params)
-            #
-            # # Load another series of real observations ( this block is a subset of process_series() )
-            # real_example = np.load( '{}/data_processed/Training/{}'.format(os.getcwd(), np.random.choice(np.delete(X_files, iteration))))
-            # real_example = tools.RNN_multivariate_processing(real_example, len_input = params['len_input'])
-            # sample = np.random.choice(real_example.shape[0], size = np.min([real_example.shape[0], params['batch_size']]), replace = False)
-            # real_example = real_example[ sample , : ]
 
             # First, sample just filenames for mini-batches
             start = iteration * params['batch_size']
