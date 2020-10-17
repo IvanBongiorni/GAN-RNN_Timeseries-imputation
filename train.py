@@ -41,17 +41,16 @@ def process_series(x, params):
     return [x, y, m]
 
 
-
-
-
-
-
-
-
-
 def train_vanilla_seq2seq(model, params):
     '''
-    ## TODO:  [ doc to be rewritten ]
+    Trains basic Seq2seq model. First, it lists all Training and Validation files,
+    to be used for mini-batch process and creation.
+    When it starts training iterations: loads a mini-batch, processes it for RNN
+    input, and call train_on_batch() function. It's an Autograph function, its @tf.function
+    decorator turns it into a TensorFlow op for faster run.
+    Each n iterations repeat mini-batch loading and processing on Validation data, to
+    check for progress in Loss.
+    Finally saves model in './saved_models' directory.
     '''
     import time
     import numpy as np
@@ -71,7 +70,7 @@ def train_vanilla_seq2seq(model, params):
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
 
-    # Get list of all Training and Validation observations
+    # 1. Get list of all Training and Validation observations
     X_files = os.listdir( os.getcwd() + '/data_processed/Training/' )
     if 'readme_training.md' in X_files: X_files.remove('readme_training.md')
     if '.gitignore' in X_files: X_files.remove('.gitignore')
@@ -83,7 +82,6 @@ def train_vanilla_seq2seq(model, params):
     V_files = np.array(V_files)
 
     for epoch in range(params['n_epochs']):
-
         # Shuffle data by shuffling row index
         if params['shuffle']:
             X_files = X_files[ np.random.choice(X_files.shape[0], X_files.shape[0], replace=False) ]
@@ -91,7 +89,7 @@ def train_vanilla_seq2seq(model, params):
         for iteration in range(X_files.shape[0] // params['batch_size']):
             start = time.time()
 
-            # fetch batch by filenames index and train
+            # 2. Fetch batch by filenames index and train
             start = iteration * params['batch_size']
             batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['batch_size']] ]
             batch = [ process_series(array, params) for array in batch ]
@@ -124,8 +122,8 @@ def train_vanilla_seq2seq(model, params):
                 mask = np.expand_dims(mask, axis=-1)
                 validation_loss = tf.reduce_mean(tf.math.abs(tf.math.multiply(model(X_batch), mask) - tf.math.multiply(Y_batch, mask)))
 
-                print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-                    epoch, iteration, current_loss, validation_loss, round(time.time()-start, 4)))
+                print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}'.format(
+                    epoch, iteration, current_loss, validation_loss))
 
     print('\nTraining complete.\n')
 
@@ -135,24 +133,28 @@ def train_vanilla_seq2seq(model, params):
     return None
 
 
-
-
-
-
-
-
-
-
 def train_GAN(generator, discriminator, params):
     '''
-    ## TODO:  [ doc to be rewritten ]
+    Trains a standard GAN model. First, it lists all Training and Validation files,
+    to be used for mini-batch process and creation.
+    When it starts training iterations: loads two mini-batches, one for actual imputation,
+    the other from as real obs. for Discriminator (sampled randomly from all available
+    training obs. but the ones used in X_batch).
+    Here, a train_step() function is called, where both Generator and Discriminator
+    networks are trained as in classical GANs, with the addition of label smoothing as
+    a regularization technique.
+    It's an Autograph function, its @tf.function decorator turns it into a TensorFlow op
+    for faster run.
+    Each n iterations repeat mini-batch loading and processing on Validation data, to
+    check for progress in Loss.
+    Finally saves model in './saved_models' directory. As a default option from config.yaml,
+    the Discriminator is saved as well as '{model_name}_discriminator' in the same directory.
     '''
     import time
     import numpy as np
     import tensorflow as tf
 
     cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True) # this works for both G and D
-    # MAE = tf.keras.losses.MeanAbsoluteError()  # to check Validation performance
 
     generator_optimizer = tf.keras.optimizers.Adam(learning_rate=params['learning_rate'])
     discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=params['learning_rate'])
@@ -167,7 +169,6 @@ def train_GAN(generator, discriminator, params):
         loss_fakes = cross_entropy(
             tf.random.uniform(shape=tf.shape(discriminator_guess_fakes), minval=0.0, maxval=0.2), discriminator_guess_fakes
         )
-        # loss_fakes = cross_entropy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)
         loss_reals = cross_entropy(
             tf.random.uniform(shape=tf.shape(discriminator_guess_reals), minval=0.8, maxval=1), discriminator_guess_reals
         )
@@ -214,7 +215,6 @@ def train_GAN(generator, discriminator, params):
             X_files = X_files[ np.random.choice(len(X_files), len(X_files), replace=False) ]
 
         for iteration in range(X_files.shape[0] // params['batch_size']):
-            start = time.time()
 
             # First, sample just filenames for mini-batches
             start = iteration * params['batch_size']
@@ -269,13 +269,12 @@ def train_GAN(generator, discriminator, params):
                 generator_imputation = generator(X_batch)
                 val_loss = tf.reduce_mean(tf.math.abs(tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)))
 
-                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})   \tTime: {}ss'.format(
+                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})'.format(
                     epoch, iteration,
                     generator_current_loss,
                     discriminator_current_loss,
                     tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)),
-                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)),
-                    round(time.time()-start, 4)
+                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes))
                 ))
                 print('\t\tTraining Loss: {}   \tValidation Loss: {}\n'.format(train_loss, val_loss))
 
@@ -291,17 +290,26 @@ def train_GAN(generator, discriminator, params):
     return None
 
 
-
-
-
-
-
-
-
-
 def train_partial_GAN(generator, discriminator, params):
     '''
-    ## TODO:  [ doc to be rewritten ]
+    Trains a more advanced GAN model. First, it lists all Training and Validation files,
+    to be used for mini-batch process and creation.
+    When it starts training iterations: loads two mini-batches, one for actual imputation,
+    the other from as real obs. for Discriminator (sampled randomly from all available
+    training obs. but the ones used in X_batch).
+    Here, a train_step() function is called, where both Generator and Discriminator
+    networks are trained. The Discriminator is trained as for classical GANs, while the Generator
+    is trained with a composite loss: a regression loss as in 'Vanilla Seq2seq', and the
+    classical GAN loss as in train_GAN(). Since the magnitude of the two losses is very
+    different (with GAN loss being significantly greater), a scaling factor is balancing
+    the two components. Label smoothing is used to compute the Discriminator's loss as
+    aregularization technique.
+    train_step() is an Autograph function, its @tf.function decorator turns it into a
+    TensorFlow op for faster run.
+    Each n iterations repeat mini-batch loading and processing on Validation data, to
+    check for progress in Loss.
+    Finally saves model in './saved_models' directory. As a default option from config.yaml,
+    the Discriminator is saved as well as '{model_name}_discriminator' in the same directory.
     '''
     import time
     import numpy as np
@@ -368,8 +376,6 @@ def train_partial_GAN(generator, discriminator, params):
             X_files = X_files[ np.random.choice(len(X_files), len(X_files), replace=False) ]
 
         for iteration in range(X_files.shape[0] // params['batch_size']):
-        # for iteration in range( int(X_files.shape[0] * 0.1) ):      ### TEMPORARY TEST
-            start = time.time()
 
             # First, sample just filenames for mini-batches
             start = iteration * params['batch_size']
@@ -424,13 +430,12 @@ def train_partial_GAN(generator, discriminator, params):
                 generator_imputation = generator(X_batch)
                 val_loss = tf.reduce_mean(tf.math.abs(tf.math.multiply(tf.squeeze(generator_imputation), mask) - tf.math.multiply(tf.squeeze(Y_batch), mask)))
 
-                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})   \tTime: {}ss'.format(
+                print('{}.{}   \tGenerator Loss: {}   \tDiscriminator Loss: {}   \tDiscriminator Accuracy (reals, fakes): ({}, {})'.format(
                     epoch, iteration,
                     generator_current_loss,
                     discriminator_current_loss,
                     tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.ones_like(discriminator_guess_reals), discriminator_guess_reals)),
-                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes)),
-                    round(time.time()-start, 4)
+                    tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.zeros_like(discriminator_guess_fakes), discriminator_guess_fakes))
                 ))
                 print('\t\tImputation Loss: {}   \tValidation Loss: {}\n'.format(train_loss, val_loss))
 
