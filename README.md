@@ -15,6 +15,11 @@ The goal of this project is the implementation of multiple configurations of a *
 
 Models are Implemented in TensorFlow 2 and trained on the [Wikipedia Web Traffic Time Series Forecasting](https://www.kaggle.com/c/web-traffic-time-series-forecasting) dataset.
 
+<div>
+  <img src="../utils/performance_comparison_3models.png">
+</div>
+
+<br/>
 
 ## Files
 - `config.yaml`: configuration parameters for data preprocessing, training and testing.
@@ -42,6 +47,7 @@ Folders:
 - `data_processed/`: it contains the outcome of preprocesing pipeline, launched from `main_processing.py`. Observations will be stored in three sub-directories for `Training/`, `Validation/` and `Test/`.
 - `saved_models/`: where models are saved at the end of training pipepine. Model names can be changed in `config.yaml`. In case a GAN is trained and config parameter `save_discriminator` is set to `True`, the Discriminator model will be saved as `[model_name]_discriminator.h5`.
 
+<br/>
 
 ## Modules required
 
@@ -53,6 +59,7 @@ scikit-learn==0.22.2.post1
 scipy==1.4.1
 tensorflow==2.1.0
 ```
+<br/>
 
 ## Bibliography
 - *Luo, Y., Cai, X., Zhang, Y., & Xu, J. (2018). Multivariate time series imputation with generative adversarial networks. In Advances in Neural Information Processing Systems (pp. 1596-1607).*
@@ -72,6 +79,7 @@ tensorflow==2.1.0
 - *Yi, J., Lee, J., Kim, K. J., Hwang, S. J., & Yang, E. (2019). Why Not to Use Zero Imputation? Correcting Sparsity Bias in Training Neural Networks. arXiv preprint arXiv:1906.00150.*
 - *Yoon, S., & Sull, S. (2020). GAMIN: Generative Adversarial Multiple Imputation Network for Highly Missing Data. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 8456-8464).*
 
+<br/>
 
 ## Hardware
 I trained this model on a fairly powerful machine: a System76 Adder WS laptop with 64 GB of RAM and NVidia RTX 2070 GPU.
