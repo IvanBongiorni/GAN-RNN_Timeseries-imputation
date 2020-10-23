@@ -15,7 +15,7 @@ The goal of this project is the implementation of multiple configurations of a *
 
 Models are Implemented in TensorFlow 2 and trained on the [Wikipedia Web Traffic Time Series Forecasting](https://www.kaggle.com/c/web-traffic-time-series-forecasting) dataset.
 
-<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/performance_comparison_3models.png" align="center" height="204" width="800" ></a>
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/performance_comparison_3models.png" align="center" height="300" width="800" ></a>
 
 <br/>
 
