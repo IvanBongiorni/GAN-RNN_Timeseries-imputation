@@ -6,7 +6,8 @@ Summary:
 2. Data processing
 3. Models' architecture
 4. Training
-5. Bibliography
+5. Results
+6. Bibliography
 ---
 
 
@@ -85,7 +86,7 @@ The Imputer, or Generator ![G](https://latex.codecogs.com/gif.latex?G)'s Loss ta
 where ![\mathcal{L}^r](https://latex.codecogs.com/gif.latex?\mathcal{L}^r) is a plain regression Loss defined as Mean Absolute Error.
 The purpose of each ![M_{i}](https://latex.codecogs.com/gif.latex?M_{i}) is to make sure the model only learns to "fill the holes" in the input trend, instead of reconstructing a whole time series in general.
 
-In the case of a simple **GAN**, instead, the Loss is a canonical Binary Cross-Entropy (BCE).
+In the case of a simple **GAN**, instead, the Loss is a canonical Binary Cross-Entropy (BCE). **Label smoothing** is added to the Discriminator's BCE Loss, as a regularization technique.
 
 More interesting is the case of the **Seq2seq model with partially adversarial training**.
 In this case the Imputer (now defined as a GAN Generator) is trained on a Loss that combines the previous two, and defined as follows:
@@ -98,8 +99,17 @@ Since the magnitude of the BCE loss exceeds its regressive counterpart, a weight
 
 
 
+### 5. Results
 
-## 5. Bibliography
+The three models have been compared, based on their performance on Test data. A more detailed exploration of their performances is avilable in [performance_comparison]((https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/performance_comparison.ipynb)) Jupyter Notebook. The following kernel density plot represents a good summary of their comparison:
+
+<a href="url" align="center"><img src="https://github.com/IvanBongiorni/GAN-RNN_Timeseries-imputation/blob/master/utils/performance_comparison_3models.png" align="center" height="300" width="800" ></a>
+
+The vanilla Seq2seq models already achieves very good results, while a plain GAN, based exclusively on a Generator Vs Discriminator game is not able to reach acceptable performances. What is most interesting is the boost in performance that the Discriminator feedback adds to the partially adversarial model, compared to its vanilla counterpart. Partial GAN is proved to be superior.
+
+
+
+## 6. Bibliography
 - *Luo, Y., Cai, X., Zhang, Y., & Xu, J. (2018). Multivariate time series imputation with generative adversarial networks. In Advances in Neural Information Processing Systems (pp. 1596-1607).*
 - *Yoon, J., Jordon, J., & Van Der Schaar, M. (2018). Gain: Missing data imputation using generative adversarial nets. arXiv preprint arXiv:1806.02920.*
 - *Guo, Z., Wan, Y., & Ye, H. (2019). A data imputation method for multivariate time series based on generative adversarial network. Neurocomputing, 360, 185-197.*
