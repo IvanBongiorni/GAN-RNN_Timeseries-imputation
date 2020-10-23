@@ -32,9 +32,10 @@ Scripts:
 
 Notebooks and explanations:
 - `how_it_works.md`: contains explanation of Deep Learning models in greater detail.
-- `imputation_visual_check.ipynb`: visualization of a models performance. The notebook loads the trained model specified in `params['model_name']` and check its performance on Validation and Test data.
-- `data_scaling_exploration.ipynb`: contains visualizations of the scaling function I employed in data preprocessing phase.
 - `nan_exploration.ipynb`: contains a study of the distribution of NaN's in the raw dataset, that lead to the development of the deterioration function.
+- `data_scaling_exploration.ipynb`: contains visualizations of the scaling function I employed in data preprocessing phase.
+- `imputation_visual_check.ipynb`: visualization of a models performance. The notebook loads the trained model specified in `params['model_name']` and check its performance on Validation and Test data.
+- `performance_comparison.ipynb`: shows the performances of three trained models on Test data, compared.
 
 Folders:
 - `data_raw/`: it is supposed to contain the raw Wikipedia Web Traffic Time Series Forecasting dataset, as it is downloaded (and unzipped) from Kaggle.
