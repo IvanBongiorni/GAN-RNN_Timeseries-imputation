@@ -108,7 +108,7 @@ def train_vanilla_seq2seq(model, params):
             # Repeat processing on Validation data and print progress
             if iteration % 50 == 0:
                 batch = np.random.choice(V_files, size=params['validation_batch_size'], replace=False)
-                batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['validation_batch_size']] ]
+                batch = [ np.load('{}/data_processed/Validation/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
                 batch = [ process_series(array, params) for array in batch ]
 
                 # Extract X, Y and Mask and stack them in final arrays
@@ -221,7 +221,7 @@ def train_GAN(generator, discriminator, params):
             batch = X_files[start:start+params['batch_size']]
             # then sample some real examples
             real_example = np.array(list(set(X_files)-set(batch)))
-            real_example = real_example[ np.random.choice(len(V_files), size=params['validation_batch_size'], replace=False) ]
+            real_example = real_example[ np.random.choice(len(V_files), size=params['batch_size'], replace=False) ]
 
             # Process raw data, extract X, Y and Mask and stack them in final arrays
             batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
@@ -256,7 +256,7 @@ def train_GAN(generator, discriminator, params):
 
                 # Extract X, Y and Mask and stack them in final arrays
                 batch = np.random.choice(V_files, size=params['validation_batch_size'], replace=False)
-                batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['validation_batch_size']] ]
+                batch = [ np.load('{}/data_processed/Validation/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
                 batch = [ process_series(array, params) for array in batch ]
 
                 X_batch = [array[0] for array in batch]
@@ -382,7 +382,7 @@ def train_partial_GAN(generator, discriminator, params):
             batch = X_files[start:start+params['batch_size']]
             # then sample some real examples
             real_example = np.array(list(set(X_files)-set(batch)))
-            real_example = real_example[ np.random.choice(len(V_files), size=params['validation_batch_size'], replace=False) ]
+            real_example = real_example[ np.random.choice(len(V_files), size=params['batch_size'], replace=False) ]
 
             # Process raw data, extract X, Y and Mask and stack them in final arrays
             batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
@@ -417,7 +417,7 @@ def train_partial_GAN(generator, discriminator, params):
 
                 # Extract X, Y and Mask and stack them in final arrays
                 batch = np.random.choice(V_files, size=params['validation_batch_size'], replace=False)
-                batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['validation_batch_size']] ]
+                batch = [ np.load('{}/data_processed/Validation/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
                 batch = [ process_series(array, params) for array in batch ]
 
                 X_batch = [array[0] for array in batch]
