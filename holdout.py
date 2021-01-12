@@ -4,7 +4,7 @@ Author: Ivan Bongiorni
 
 Performance check on Test data.
 
-This script ca be called from main_train.py after training is done and
+This script can be called from main_train.py after training is done and
 params['check_test_performance'] from config.yaml is set to True, or from
 Jupyter Notebook visualize_imputation.ipynb to check Test performance.
 """
