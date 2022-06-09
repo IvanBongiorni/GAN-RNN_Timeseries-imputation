@@ -31,7 +31,6 @@ Scripts:
 - `model.py`: implementation of models' architectures.
 - `train.py`: contains functions for all training configurations.
 - `deterioration.py`: the script contains the function that calls an artificial deterioration of training data, in order to check imputation performance.
-- `impute.py`: final script, to be called in order to produce imputed data (for raw time series that contain NaN's) and export them for future projects.
 
 Notebooks and explanations:
 - `how_it_works.md`: contains explanation of Deep Learning models in greater detail.
